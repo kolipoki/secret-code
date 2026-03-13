@@ -5,57 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mechanical Cryptex</title>
     <style>
-        body { margin: 0; background: #0f0f0f; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
+        body { margin: 0; background: #0a0a0a; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
         
         #ui { 
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
             pointer-events: none; display: flex; flex-direction: column; 
-            align-items: center; justify-content: space-between; padding: 30px; box-sizing: border-box; 
+            align-items: center; justify-content: space-between; padding: 40px; box-sizing: border-box; 
         }
 
-        /* The Selection Rectangle */
-        #selector-box {
+        /* The Selection Indicator (Physical looking lens) */
+        #lens {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            width: 120px; height: 320px; /* Wraps the vertical stack */
-            border: 4px solid #d4af37;
-            border-radius: 10px;
-            box-shadow: 0 0 20px #8b6d0d, inset 0 0 15px #8b6d0d;
-            background: rgba(212, 175, 55, 0.05);
+            width: 140px; height: 340px;
+            border-left: 2px solid #ffcc00;
+            border-right: 2px solid #ffcc00;
+            background: rgba(255, 204, 0, 0.03);
             pointer-events: none;
-            display: flex; flex-direction: column; justify-content: space-around;
+            z-index: 5;
         }
 
-        /* Marker line in the center of the box */
-        .marker { width: 100%; height: 2px; background: rgba(212, 175, 55, 0.3); }
+        /* Horizontal Guide Line */
+        .guide-line {
+            position: absolute; top: 50%; left: -20px; width: calc(100% + 40px);
+            height: 2px; background: rgba(255, 204, 0, 0.5); box-shadow: 0 0 10px #ffcc00;
+        }
 
         #submit-btn {
-            pointer-events: auto; background: #d4af37; border: none; 
+            pointer-events: auto; background: #d4af37; border: 2px solid #000; 
             padding: 15px 40px; font-size: 1.2rem; font-weight: bold; 
             border-radius: 5px; cursor: pointer; color: #111;
-            box-shadow: 0 5px 0 #8b6d0d;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: 0.2s;
         }
-        #submit-btn:active { transform: translateY(4px); box-shadow: none; }
+        #submit-btn:active { transform: translateY(2px); box-shadow: none; }
 
-        #reward { 
-            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            text-align: center; background: #111; padding: 40px; border: 3px solid #d4af37; z-index: 1000;
+        #reward-container { 
+            display: none; position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); text-align: center; 
+            background: #111; padding: 40px; border: 3px solid #d4af37; 
+            z-index: 1000; box-shadow: 0 0 50px #d4af37;
         }
-        .qr-image { width: 200px; border: 10px solid #fff; margin-top: 20px; }
+        .qr-image { width: 200px; border: 5px solid #fff; margin-top: 20px; }
+        
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
     <div id="ui">
-        <h2 style="color: #d4af37; letter-spacing: 5px; margin: 0;">CRYPTEX v2.0</h2>
-        <div id="selector-box">
-            <div class="marker"></div><div class="marker"></div><div class="marker"></div>
+        <h2 style="color: #d4af37; letter-spacing: 5px; text-shadow: 0 0 10px #000;">MECHANISM</h2>
+        
+        <div id="lens">
+            <div class="guide-line"></div>
         </div>
-        <button id="submit-btn" onclick="checkCode()">OPEN LOCK</button>
+
+        <button id="submit-btn" onclick="checkCode()">ENGAGE LOCK</button>
     </div>
 
-    <div id="reward">
-        <h1 style="color: #d4af37;">UNLOCKED</h1>
+    <div id="reward-container">
+        <h1 style="color: #d4af37; margin: 0;">GRANTED</h1>
+        <p style="color: #fff;">Scan the hidden frequency:</p>
         <img src="reward-qr.png" class="qr-image" alt="Secret QR">
     </div>
 
@@ -63,11 +72,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
     <script>
-        const PIN = [1, 3, 3, 7]; // Set your code here
+        const PIN = [1, 2, 3, 4]; // Set your code here
         let currentStatus = [0, 0, 0, 0];
         const rings = [];
         
-        // 1. Scene & Lighting (High Visibility Setup)
+        // 1. Scene & Bright Lighting
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -75,129 +84,135 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.7); // Bright overall light
-        scene.add(ambient);
-        
-        const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
-        keyLight.position.set(5, 5, 10);
-        scene.add(keyLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 5, 10);
+        scene.add(dirLight);
 
-        const fillLight = new THREE.PointLight(0xffd700, 0.5); // Warm gold fill
-        fillLight.position.set(-5, 0, 5);
-        scene.add(fillLight);
-
-        // 2. Texture Generation (Huge, readable digits)
-        function createDigitTexture() {
+        // 2. Texture Generation (High contrast gold on black)
+        function createTex() {
             const canvas = document.createElement('canvas');
             canvas.width = 1024; canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#1a1a1a'; // Dark Matte Ring
-            ctx.fillRect(0,0,1024,128);
-            ctx.fillStyle = '#f1c40f'; // Bright Golden Text
-            ctx.font = 'bold 90px Arial';
+            ctx.fillStyle = '#111'; ctx.fillRect(0,0,1024,128);
+            ctx.fillStyle = '#ffcc00'; ctx.font = 'bold 85px Arial';
             ctx.textAlign = 'center';
             for(let i=0; i<10; i++) {
                 ctx.fillText(i, (i * 102.4) + 51, 95);
-                ctx.strokeStyle = '#333';
-                ctx.strokeRect(i * 102.4, 0, 102.4, 128);
+                ctx.strokeStyle = '#333'; ctx.strokeRect(i * 102.4, 0, 102.4, 128);
             }
             const tex = new THREE.CanvasTexture(canvas);
             tex.wrapS = THREE.RepeatWrapping;
             return tex;
         }
 
-        // 3. Building the Vertical Stack
+        // 3. Setup Rings
         const cryptexGroup = new THREE.Group();
         const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 40);
-        const ringTex = createDigitTexture();
-        const ringMat = new THREE.MeshPhongMaterial({ map: ringTex, shininess: 30 });
+        const ringTex = createTex();
+        const ringMat = new THREE.MeshPhongMaterial({ map: ringTex, shininess: 50 });
 
         for(let i=0; i<4; i++) {
             const ring = new THREE.Mesh(ringGeo, ringMat.clone());
-            // Stack them vertically (Y axis)
-            ring.position.y = (1.5 - i) * 0.9; 
+            ring.position.y = (1.5 - i) * 0.9;
             ring.userData = { index: i };
             rings.push(ring);
             cryptexGroup.add(ring);
         }
 
+        // Top and Bottom Caps
+        const capGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.3, 32);
+        const capMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+        const topCap = new THREE.Mesh(capGeo, capMat); topCap.position.y = 2.0;
+        const bottomCap = new THREE.Mesh(capGeo, capMat); bottomCap.position.y = -2.0;
+        cryptexGroup.add(topCap, bottomCap);
+
         scene.add(cryptexGroup);
         camera.position.set(0, 0, 8);
 
-        // 4. Interaction (Horizontal Drag for Vertical Stack)
+        // 4. Interaction (Drag to Rotate)
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let selectedRing = null, isDragging = false, lastX = 0;
 
-        function handleDown(e) {
+        function onDown(e) {
             const x = e.touches ? e.touches[0].clientX : e.clientX;
             const y = e.touches ? e.touches[0].clientY : e.clientY;
-            mouse.x = (x / window.innerWidth) * 2 - 1;
-            mouse.y = -(y / window.innerHeight) * 2 + 1;
-            
+            mouse.x = (x/window.innerWidth)*2-1; mouse.y = -(y/window.innerHeight)*2+1;
             raycaster.setFromCamera(mouse, camera);
             const hits = raycaster.intersectObjects(rings);
-            if (hits.length > 0) {
-                selectedRing = hits[0].object;
-                isDragging = true;
-                lastX = x;
-            }
+            if (hits.length > 0) { selectedRing = hits[0].object; isDragging = true; lastX = x; }
         }
 
-        function handleMove(e) {
+        function onMove(e) {
             if (!isDragging || !selectedRing) return;
             const x = e.touches ? e.touches[0].clientX : e.clientX;
-            const deltaX = x - lastX;
-            // Drag left/right to rotate the vertical ring
-            selectedRing.rotation.y += deltaX * 0.01;
+            selectedRing.rotation.y += (x - lastX) * 0.01;
             lastX = x;
             if (navigator.vibrate) navigator.vibrate(5);
         }
 
-        function handleUp() {
+        function onUp() {
             if (selectedRing) {
                 const step = (Math.PI * 2) / 10;
-                // Note: Cylinder texture 0 starts at rotation 0, so we snap to -rotation
                 const target = Math.round(selectedRing.rotation.y / step) * step;
-                
-                new TWEEN.Tween(selectedRing.rotation)
-                    .to({ y: target }, 400)
-                    .easing(TWEEN.Easing.Back.Out)
-                    .onUpdate(() => {
-                        // Calculate which digit is facing front (at rotation 0)
-                        let digit = Math.round((-selectedRing.rotation.y / step) % 10);
-                        while (digit < 0) digit += 10;
-                        currentStatus[selectedRing.userData.index] = digit;
-                    })
-                    .start();
+                new TWEEN.Tween(selectedRing.rotation).to({ y: target }, 400).easing(TWEEN.Easing.Back.Out).onComplete(updateStatus).start();
             }
-            isDragging = false;
-            selectedRing = null;
+            isDragging = false; selectedRing = null;
         }
 
-        window.addEventListener('mousedown', handleDown);
-        window.addEventListener('mousemove', handleMove);
-        window.addEventListener('mouseup', handleUp);
-        window.addEventListener('touchstart', handleDown);
-        window.addEventListener('touchmove', handleMove);
-        window.addEventListener('touchend', handleUp);
+        function updateStatus() {
+            const step = (Math.PI * 2) / 10;
+            rings.forEach((r, i) => {
+                let digit = Math.round((-r.rotation.y / step) % 10);
+                while (digit < 0) digit += 10;
+                currentStatus[i] = digit;
+            });
+        }
 
-        // 5. Submit Logic
+        window.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+        window.addEventListener('touchstart', onDown); window.addEventListener('touchmove', onMove); window.addEventListener('touchend', onUp);
+
+        // 5. THE ANIMATIONS (The Core Request)
         function checkCode() {
-            const win = currentStatus.every((v, i) => v === PIN[i]);
-            if (win) {
+            const isCorrect = currentStatus.every((v, i) => v === PIN[i]);
+            
+            if (isCorrect) {
+                // SUCCESS ANIMATION
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 400]);
+                
+                // 1. Move caps away
+                new TWEEN.Tween(topCap.position).to({ y: 10 }, 1000).easing(TWEEN.Easing.Quadratic.In).start();
+                new TWEEN.Tween(bottomCap.position).to({ y: -10 }, 1000).easing(TWEEN.Easing.Quadratic.In).start();
+                
+                // 2. Explode rings
                 rings.forEach((r, i) => {
-                    new TWEEN.Tween(r.position).to({ x: (i%2==0?1:-1)*10, opacity: 0 }, 1000).start();
+                    new TWEEN.Tween(r.position).to({ x: (i % 2 === 0 ? 8 : -8), z: -5 }, 1200).easing(TWEEN.Easing.Quadratic.In).start();
+                    new TWEEN.Tween(r.rotation).to({ x: Math.random() * 10, y: Math.random() * 10 }, 1200).start();
                 });
+
+                // 3. Show reward
                 setTimeout(() => {
                     document.getElementById('ui').style.display = 'none';
-                    document.getElementById('reward').style.display = 'block';
-                }, 800);
+                    document.getElementById('reward-container').style.display = 'block';
+                }, 1000);
+
             } else {
+                // FAIL ANIMATION
                 if (navigator.vibrate) navigator.vibrate(500);
-                // Heavy Shake
-                new TWEEN.Tween(cryptexGroup.position).to({ x: 0.3 }, 50).repeat(10).yoyo(true).to({x:0}, 50).start();
+                
+                // 1. Shake the device
+                new TWEEN.Tween(cryptexGroup.position)
+                    .to({ x: 0.4 }, 50).repeat(10).yoyo(true)
+                    .to({ x: 0 }, 50).start();
+                
+                // 2. Spin all rings wildly to reset
+                rings.forEach((r) => {
+                    new TWEEN.Tween(r.rotation)
+                        .to({ y: r.rotation.y + (Math.PI * 2) }, 600)
+                        .easing(TWEEN.Easing.Elastic.Out)
+                        .start();
+                });
             }
         }
 
@@ -205,7 +220,7 @@
             requestAnimationFrame(animate);
             TWEEN.update(time);
             if (!isDragging) {
-                cryptexGroup.rotation.y = Math.sin(time / 2500) * 0.1;
+                cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.1;
             }
             renderer.render(scene, camera);
         }
