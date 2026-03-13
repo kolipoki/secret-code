@@ -72,6 +72,11 @@
         }
 
         function unlock() {
+            // 2. SUCCESS VIBRATION: Long 200ms buzz when the box opens
+            if (navigator.vibrate) {
+                window.navigator.vibrate(200);
+            }
+            
             document.getElementById('unlock-screen').style.display = 'none';
             document.getElementById('box-content').style.display = 'block';
         }
