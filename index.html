@@ -3,179 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cryptex</title>
+    <title>3D Gold Cryptex</title>
     <style>
-        body { margin: 0; background: #121212; font-family: 'Georgia', serif; overflow: hidden; color: white; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 0; box-sizing: border-box; }
+        body { margin: 0; background: radial-gradient(circle, #333 0%, #111 100%); font-family: 'Georgia', serif; overflow: hidden; color: white; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 30px 0; box-sizing: border-box; }
         
-        .controls { display: flex; gap: 25px; pointer-events: auto; }
-        .wheel-ctrl { display: flex; flex-direction: column; gap: 140px; } /* Spacing for the 3D rings */
+        .controls { display: flex; gap: 30px; pointer-events: auto; margin-top: 20px; }
+        .wheel-ctrl { display: flex; flex-direction: column; gap: 160px; } /* Aligned to rings */
         
         .btn { 
-            background: #d4af37; border: none; width: 50px; height: 50px; 
+            background: #f1c40f; border: 2px solid #95a5a6; width: 50px; height: 50px; 
             border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1.5rem;
-            box-shadow: 0 4px 0 #8b6d0d; transition: 0.1s;
+            box-shadow: 0 4px 0 #b8860b; color: #444;
         }
         .btn:active { transform: translateY(3px); box-shadow: none; }
 
         #submit-btn {
-            pointer-events: auto; background: #d4af37; border: none; padding: 15px 40px;
-            font-size: 1.2rem; font-weight: bold; border-radius: 5px; cursor: pointer;
-            box-shadow: 0 5px 0 #8b6d0d; margin-bottom: 20px;
+            pointer-events: auto; background: #d4af37; border: 2px solid white; padding: 15px 50px;
+            font-size: 1.4rem; font-weight: bold; border-radius: 30px; cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5); color: #111;
         }
 
         #reward { 
             display: none; position: absolute; top: 50%; left: 50%; 
             transform: translate(-50%, -50%); text-align: center; 
-            background: rgba(0,0,0,0.9); padding: 30px; border: 3px solid #d4af37; border-radius: 15px;
+            background: rgba(20,20,20,0.95); padding: 40px; border: 4px solid #d4af37; border-radius: 20px;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.4); z-index: 100;
         }
-        .qr-image { width: 200px; border: 5px solid white; margin-top: 15px; }
-        canvas { display: block; }
+        .qr-image { width: 220px; border: 8px solid white; margin-top: 15px; border-radius: 5px; }
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
-        <h2 style="color: #d4af37; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Törd fel a CRYPTEXet</h2>
+        <h1 style="color: #f1c40f; text-shadow: 0 2px 10px black; letter-spacing: 2px;">CRYPTEX DECODER</h1>
         
         <div class="controls">
-            <!-- 4 Sets of buttons for 4 rings -->
-            <div class="wheel-ctrl">
-                <button class="btn" onclick="rotateRing(0, 1)">▲</button>
-                <button class="btn" onclick="rotateRing(0, -1)">▼</button>
-            </div>
-            <div class="wheel-ctrl">
-                <button class="btn" onclick="rotateRing(1, 1)">▲</button>
-                <button class="btn" onclick="rotateRing(1, -1)">▼</button>
-            </div>
-            <div class="wheel-ctrl">
-                <button class="btn" onclick="rotateRing(2, 1)">▲</button>
-                <button class="btn" onclick="rotateRing(2, -1)">▼</button>
-            </div>
-            <div class="wheel-ctrl">
-                <button class="btn" onclick="rotateRing(3, 1)">▲</button>
-                <button class="btn" onclick="rotateRing(3, -1)">▼</button>
-            </div>
+            <div class="wheel-ctrl"><button class="btn" onclick="rotateRing(0, 1)">▲</button><button class="btn" onclick="rotateRing(0, -1)">▼</button></div>
+            <div class="wheel-ctrl"><button class="btn" onclick="rotateRing(1, 1)">▲</button><button class="btn" onclick="rotateRing(1, -1)">▼</button></div>
+            <div class="wheel-ctrl"><button class="btn" onclick="rotateRing(2, 1)">▲</button><button class="btn" onclick="rotateRing(2, -1)">▼</button></div>
+            <div class="wheel-ctrl"><button class="btn" onclick="rotateRing(3, 1)">▲</button><button class="btn" onclick="rotateRing(3, -1)">▼</button></div>
         </div>
 
-        <button id="submit-btn" onclick="checkCode()">Cryptex nyitása</button>
+        <button id="submit-btn" onclick="checkCode()">OPEN CRYPTEX</button>
     </div>
 
     <div id="reward">
-        <h1 style="color: #d4af37;">Nyitás engedélyezve</h1>
-        <p>Olvasd be a következő nyomot:</p>
+        <h1 style="color: #d4af37; margin:0;">ACCESS GRANTED</h1>
+        <p>Your hidden code is revealed:</p>
         <img src="reward-qr.png" class="qr-image">
     </div>
 
-    <!-- Load Three.js and Tween for animation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
     <script>
-        const PIN = [3, 9, 8, 5]; // SET YOUR PIN HERE
+        const PIN = [1, 2, 3, 4]; // SET YOUR PIN HERE
         let currentStatus = [0, 0, 0, 0];
         const rings = [];
         
-        // 1. Setup Scene
+        // 1. Scene & Brighter Lighting
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        // Strong Lighting Setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // High base light
         scene.add(ambientLight);
-        const pointLight = new THREE.PointLight(0xd4af37, 1);
-        pointLight.position.set(5, 5, 5);
-        scene.add(pointLight);
 
-        // 2. Create Rings
-        const ringGroup = new THREE.Group();
-        const loader = new THREE.TextureLoader();
+        const frontLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        frontLight.position.set(0, 5, 10);
+        scene.add(frontLight);
+
+        const goldLight = new THREE.PointLight(0xffd700, 1.5); // Warm gold glow
+        goldLight.position.set(-5, 2, 5);
+        scene.add(goldLight);
+
+        // 2. Build the Cryptex
+        const cryptexGroup = new THREE.Group();
 
         function createRing(xPos) {
-            const geometry = new THREE.CylinderGeometry(1, 1, 0.6, 32);
+            const geometry = new THREE.CylinderGeometry(1, 1, 0.6, 40);
             
-            // Create a texture for numbers 0-9
+            // Create Number Texture (Bright background, clear text)
             const canvas = document.createElement('canvas');
-            canvas.width = 512; canvas.height = 64;
+            canvas.width = 1024; canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#222'; ctx.fillRect(0,0,512,64);
-            ctx.fillStyle = '#d4af37'; ctx.font = 'bold 40px Serif';
+            ctx.fillStyle = '#3d2b1f'; // Deep brass background
+            ctx.fillRect(0,0,1024,128);
+            ctx.strokeStyle = '#d4af37';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(5,5,1014,118);
+            
+            ctx.fillStyle = '#f1c40f'; // Bright gold text
+            ctx.font = 'bold 80px Serif';
             ctx.textAlign = 'center';
             for(let i=0; i<10; i++) {
-                ctx.fillText(i, (i * 51.2) + 25, 45);
+                ctx.fillText(i, (i * 102.4) + 51, 90);
             }
             
             const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = THREE.RepeatWrapping;
             
-            const material = new THREE.MeshStandardMaterial({ 
+            // Material: Shiny but visible without environment
+            const material = new THREE.MeshPhongMaterial({ 
                 map: tex, 
-                metalness: 0.9, 
-                roughness: 0.2, 
-                color: 0x888888 
+                shininess: 100, 
+                specular: 0xffffff,
+                emissive: 0x221100 // Slight internal glow for visibility
             });
             
             const ring = new THREE.Mesh(geometry, material);
-            ring.rotation.z = Math.PI / 2; // Flip cylinder sideways
+            ring.rotation.z = Math.PI / 2;
             ring.position.x = xPos;
             return ring;
         }
 
+        // Add 4 rings
         for(let i=0; i<4; i++) {
             const r = createRing((i - 1.5) * 0.7);
             rings.push(r);
-            ringGroup.add(r);
+            cryptexGroup.add(r);
         }
-        scene.add(ringGroup);
-        camera.position.z = 4;
 
-        // 3. Rotation Logic
+        // Add "End Caps" to make it look like one object
+        const capGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.2, 32);
+        const capMat = new THREE.MeshPhongMaterial({ color: 0x554433, shininess: 80 });
+        const leftCap = new THREE.Mesh(capGeo, capMat);
+        leftCap.rotation.z = Math.PI/2; leftCap.position.x = -1.4;
+        const rightCap = new THREE.Mesh(capGeo, capMat);
+        rightCap.rotation.z = Math.PI/2; rightCap.position.x = 1.4;
+        
+        cryptexGroup.add(leftCap);
+        cryptexGroup.add(rightCap);
+        scene.add(cryptexGroup);
+
+        camera.position.set(0, 0, 5);
+
+        // 3. Logic
         function rotateRing(idx, dir) {
+            // Numbers are spaced every 36 degrees (Math.PI * 2 / 10)
             currentStatus[idx] = (currentStatus[idx] - dir + 10) % 10;
             
             new TWEEN.Tween(rings[idx].rotation)
-                .to({ x: rings[idx].rotation.x + (dir * (Math.PI * 2 / 10)) }, 300)
+                .to({ x: rings[idx].rotation.x + (dir * (Math.PI * 2 / 10)) }, 400)
                 .easing(TWEEN.Easing.Back.Out)
                 .start();
 
             if (navigator.vibrate) navigator.vibrate(40);
         }
 
-        // 4. Submit Logic
         function checkCode() {
-            const success = currentStatus.every((val, i) => val === PIN[i]);
-            
-            if (success) {
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+            const isMatch = currentStatus.every((v, i) => v === PIN[i]);
+            if (isMatch) {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 400]);
                 
-                // Animation: Slide rings apart
+                // Explode Animation
                 rings.forEach((r, i) => {
-                    new TWEEN.Tween(r.position).to({ x: r.position.x * 5, y: -5 }, 1000).start();
+                    new TWEEN.Tween(r.position).to({ x: r.position.x * 10, y: (Math.random()-0.5)*10, z: 5 }, 1200).start();
                 });
-                
+                new TWEEN.Tween(cryptexGroup.rotation).to({ y: Math.PI }, 1000).start();
+
                 setTimeout(() => {
                     document.getElementById('ui-layer').style.display = 'none';
                     document.getElementById('reward').style.display = 'block';
-                }, 500);
+                }, 800);
             } else {
                 if (navigator.vibrate) navigator.vibrate(500);
-                // Shake Camera
-                new TWEEN.Tween(camera.position).to({ x: 0.2 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
+                // Camera shake effect
+                new TWEEN.Tween(camera.position).to({ x: 0.3 }, 50).repeat(3).yoyo(true).to({x:0}, 50).start();
             }
         }
 
-        // Render Loop
         function animate(time) {
             requestAnimationFrame(animate);
             TWEEN.update(time);
+            // Slowly rotate the whole cryptex for a 3D effect
+            cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.2;
             renderer.render(scene, camera);
         }
         animate();
 
-        // Handle Resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
