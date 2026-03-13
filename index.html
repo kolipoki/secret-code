@@ -5,174 +5,190 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Steampunk Cryptex</title>
     <style>
-        body { margin: 0; background: #0a0a0a; font-family: 'Georgia', serif; overflow: hidden; touch-action: none; color: #d4af37; }
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 0; box-sizing: border-box; }
+        body { margin: 0; background: #080705; font-family: 'Courier New', Courier, monospace; overflow: hidden; touch-action: none; color: #8b6d0d; }
         
-        h1 { text-shadow: 0 0 10px rgba(0,0,0,1), 0 0 20px #8b6d0d; font-size: 1.8rem; letter-spacing: 3px; text-align: center; }
-        
-        #submit-btn {
-            pointer-events: auto; background: linear-gradient(#d4af37, #8b6d0d); border: 2px solid #5d4a1b; padding: 15px 45px;
-            font-size: 1.3rem; font-weight: bold; border-radius: 5px; cursor: pointer; color: #1a1a1a;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8); transition: 0.2s;
+        #ui-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            pointer-events: none; display: flex; flex-direction: column; 
+            align-items: center; justify-content: space-between; padding: 40px 20px; box-sizing: border-box; 
         }
-        #submit-btn:active { transform: scale(0.95); box-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        
+        h1 { 
+            text-shadow: 2px 2px 5px rgba(0,0,0,1); font-size: 1.5rem; 
+            letter-spacing: 4px; text-align: center; margin: 0; color: #a67c00;
+        }
+
+        .instructions { font-size: 0.7rem; letter-spacing: 1px; color: #5d4a1b; text-transform: uppercase; }
+
+        #submit-btn {
+            pointer-events: auto; background: #1a150a; border: 2px solid #5d4a1b; 
+            padding: 18px 50px; font-size: 1.1rem; font-weight: bold; border-radius: 2px; 
+            cursor: pointer; color: #d4af37; box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+        #submit-btn:active { background: #3d2b1f; color: #fff; }
 
         #reward { 
-            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; 
-            background: rgba(15,10,5,0.98); padding: 40px; border: 3px solid #8b6d0d; border-radius: 10px; z-index: 100;
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            text-align: center; background: #0f0a05; padding: 30px; border: 2px solid #8b6d0d; 
+            z-index: 100; width: 80%; max-width: 300px;
         }
-        .qr-image { width: 220px; border: 5px solid #fff; margin-top: 20px; box-shadow: 0 0 20px #d4af37; }
-        canvas { display: block; cursor: grab; }
-        canvas:active { cursor: grabbing; }
+        .qr-image { width: 100%; max-width: 200px; border: 10px solid #fff; margin-top: 20px; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
     <div id="ui-layer">
-        <h1>CRYPTEX DECODER</h1>
-        <div style="font-size: 0.9rem; opacity: 0.7;">DRAG RINGS TO ROTATE</div>
-        <button id="submit-btn" onclick="checkCode()">OPEN DEVICE</button>
+        <h1>MECHANICAL ENIGMA</h1>
+        <div class="instructions">Align digits vertically</div>
+        <button id="submit-btn" onclick="checkCode()">ENGAGE MECHANISM</button>
     </div>
 
     <div id="reward">
-        <h1 style="margin:0;">DEVICE UNLOCKED</h1>
-        <p>Your secret code is revealed:</p>
-        <img src="reward-qr.png" class="qr-image">
+        <h2 style="color: #d4af37; margin:0;">ACCESS GRANTED</h2>
+        <img src="reward-qr.png" class="qr-image" alt="Reward QR">
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
     <script>
-        const PIN = [1, 2, 3, 4]; // SET YOUR PIN HERE
+        const PIN = [1, 2, 3, 4]; // Change your PIN here
         let currentStatus = [0, 0, 0, 0];
         const rings = [];
         
-        // 1. Scene Setup
+        // 1. Scene & Camera Setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x050505);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // Moody Steampunk Lighting
-        const ambient = new THREE.AmbientLight(0xffffff, 0.2); 
+        // Realistic Matte Lighting (No sharp reflections)
+        const ambient = new THREE.AmbientLight(0xffffff, 0.4); 
         scene.add(ambient);
         
-        const spot1 = new THREE.SpotLight(0xffeeb1, 1.5);
-        spot1.position.set(5, 10, 10);
-        scene.add(spot1);
+        const topLight = new THREE.DirectionalLight(0xffeeb1, 0.8);
+        topLight.position.set(0, 10, 5);
+        scene.add(topLight);
 
-        const pointRed = new THREE.PointLight(0xff4400, 0.5); // Warm furnace-like glow
-        pointRed.position.set(-5, -2, 2);
-        scene.add(pointRed);
+        const errorLight = new THREE.PointLight(0xff0000, 0); // For wrong code animation
+        errorLight.position.set(0, 0, 3);
+        scene.add(errorLight);
 
-        // 2. Materials & Objects
-        const brassMaterial = new THREE.MeshStandardMaterial({
-            color: 0x5d4a1b, // Darker aged brass
-            metalness: 1.0,
-            roughness: 0.45,
-            emissive: 0x110a00
-        });
+        // 2. Responsive Scaling Logic
+        const isMobile = window.innerWidth < 600;
+        const ringSpacing = isMobile ? 0.75 : 0.85;
+        const ringScale = isMobile ? 0.9 : 1.1;
 
-        const cryptexGroup = new THREE.Group();
-
-        function createNumberRing(xPos, ringIndex) {
+        // 3. Create Vertical Number Texture
+        function createVerticalTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 1024; canvas.height = 128;
+            canvas.width = 128; canvas.height = 1024; // Tall vertical strip
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#2a1d12'; // Dark wood/aged metal background
-            ctx.fillRect(0,0,1024,128);
-            ctx.fillStyle = '#d4af37'; // Golden numbers
-            ctx.font = 'bold 70px Georgia';
+            
+            // Matte Background (Aged Iron/Brass)
+            ctx.fillStyle = '#1c1710'; 
+            ctx.fillRect(0,0,128,1024);
+            
+            // Numbers
+            ctx.fillStyle = '#b58e24';
+            ctx.font = 'bold 80px Courier New';
             ctx.textAlign = 'center';
             for(let i=0; i<10; i++) {
-                ctx.fillText(i, (i * 102.4) + 51, 85);
-                // Add decorative divider lines
-                ctx.strokeStyle = '#5d4a1b';
-                ctx.strokeRect((i * 102.4), 0, 102.4, 128);
+                // We draw numbers so they wrap around the cylinder
+                ctx.fillText(i, 64, (i * 102.4) + 75);
+                ctx.strokeStyle = '#2d2518';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(5, (i * 102.4) + 5, 118, 92);
             }
-            
             const tex = new THREE.CanvasTexture(canvas);
-            const ringGeo = new THREE.CylinderGeometry(1, 1, 0.65, 40);
-            const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ 
-                map: tex, metalness: 0.8, roughness: 0.3 
-            }));
-            
-            ring.rotation.z = Math.PI / 2;
-            ring.position.x = xPos;
-            ring.userData = { index: ringIndex };
-            return ring;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
         }
+
+        // 4. Build Cryptex
+        const cryptexGroup = new THREE.Group();
+        const texture = createVerticalTexture();
+
+        // Matte Metal Material
+        const matteMetal = new THREE.MeshPhongMaterial({
+            color: 0x3d3220,
+            shininess: 5, // Very low shininess to remove reflections
+            map: texture
+        });
 
         for(let i=0; i<4; i++) {
-            const r = createNumberRing((i - 1.5) * 0.8, i);
-            rings.push(r);
-            cryptexGroup.add(r);
+            const ringGeo = new THREE.CylinderGeometry(1, 1, 0.7, 40);
+            const ring = new THREE.Mesh(ringGeo, matteMetal.clone());
+            
+            // Correct orientation for vertical reading
+            ring.rotation.z = Math.PI / 2;
+            ring.position.x = (i - 1.5) * ringSpacing;
+            ring.scale.set(ringScale, 1, ringScale);
+            ring.userData = { index: i };
+            rings.push(ring);
+            cryptexGroup.add(ring);
         }
 
-        // Steampunk End Caps (Decorative)
-        const capGeo = new THREE.TorusGeometry(1, 0.15, 16, 32);
-        const leftCap = new THREE.Mesh(capGeo, brassMaterial);
-        leftCap.position.x = -1.6; leftCap.rotation.y = Math.PI/2;
-        const rightCap = new THREE.Mesh(capGeo, brassMaterial);
-        rightCap.position.x = 1.6; rightCap.rotation.y = Math.PI/2;
-        cryptexGroup.add(leftCap, rightCap);
+        // End Bolts
+        const boltGeo = new THREE.CylinderGeometry(1.1, 1.1, 0.2, 8);
+        const boltMat = new THREE.MeshPhongMaterial({color: 0x1a150a, shininess: 2});
+        const leftBolt = new THREE.Mesh(boltGeo, boltMat);
+        leftBolt.position.x = -1.6 * ringSpacing; leftBolt.rotation.z = Math.PI/2;
+        const rightBolt = new THREE.Mesh(boltGeo, boltMat);
+        rightBolt.position.x = 1.6 * ringSpacing; rightBolt.rotation.z = Math.PI/2;
+        cryptexGroup.add(leftBolt, rightBolt);
 
         scene.add(cryptexGroup);
-        camera.position.z = 6;
+        camera.position.z = isMobile ? 7 : 5;
 
-        // 3. Interaction Logic (Drag to Rotate)
+        // 5. Interaction (Vertical Drag)
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let selectedRing = null;
         let isDragging = false;
-        let previousMouseY = 0;
+        let startY = 0;
 
-        function onPointerDown(e) {
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            mouse.x = (clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(clientY / window.innerHeight) * 2 + 1;
+        function handleDown(e) {
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            const x = e.touches ? e.touches[0].clientX : e.clientX;
+            mouse.x = (x / window.innerWidth) * 2 - 1;
+            mouse.y = -(y / window.innerHeight) * 2 + 1;
             
             raycaster.setFromCamera(mouse, camera);
             const intersects = raycaster.intersectObjects(rings);
-            
             if (intersects.length > 0) {
                 selectedRing = intersects[0].object;
                 isDragging = true;
-                previousMouseY = clientY;
+                startY = y;
             }
         }
 
-        function onPointerMove(e) {
+        function handleMove(e) {
             if (!isDragging || !selectedRing) return;
+            const y = e.touches ? e.touches[0].clientY : e.clientY;
+            const deltaY = y - startY;
             
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const deltaY = clientY - previousMouseY;
-            
-            // Sensitivity: adjust 0.005 to spin faster/slower
-            selectedRing.rotation.x += deltaY * 0.008; 
-            previousMouseY = clientY;
-            
-            if (navigator.vibrate) navigator.vibrate(10);
+            // Rotate on X axis for vertical movement
+            selectedRing.rotation.x += deltaY * 0.01;
+            startY = y;
+            if (navigator.vibrate) navigator.vibrate(5);
         }
 
-        function onPointerUp() {
+        function handleUp() {
             if (selectedRing) {
-                // Snap to nearest digit (36 degrees / 0.628 radians)
                 const step = Math.PI * 2 / 10;
-                const targetRotation = Math.round(selectedRing.rotation.x / step) * step;
+                const target = Math.round(selectedRing.rotation.x / step) * step;
                 
                 new TWEEN.Tween(selectedRing.rotation)
-                    .to({ x: targetRotation }, 400)
+                    .to({ x: target }, 500)
                     .easing(TWEEN.Easing.Back.Out)
                     .onComplete(() => {
-                        // Update currentStatus array (normalize to 0-9)
-                        let digit = Math.round((-targetRotation / step) % 10);
-                        if (digit < 0) digit += 10;
+                        let digit = Math.round((target / step) % 10);
+                        while (digit < 0) digit += 10;
                         currentStatus[selectedRing.userData.index] = digit;
                     })
                     .start();
@@ -181,33 +197,34 @@
             selectedRing = null;
         }
 
-        window.addEventListener('mousedown', onPointerDown);
-        window.addEventListener('mousemove', onPointerMove);
-        window.addEventListener('mouseup', onPointerUp);
-        window.addEventListener('touchstart', onPointerDown);
-        window.addEventListener('touchmove', onPointerMove);
-        window.addEventListener('touchend', onPointerUp);
+        window.addEventListener('mousedown', handleDown);
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleUp);
+        window.addEventListener('touchstart', handleDown);
+        window.addEventListener('touchmove', handleMove);
+        window.addEventListener('touchend', handleUp);
 
-        // 4. Submit & Animation
+        // 6. Logic & Animations
         function checkCode() {
-            const success = currentStatus.every((val, i) => val === PIN[i]);
+            const win = currentStatus.every((v, i) => v === PIN[i]);
             
-            if (success) {
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 400]);
-                
-                // Success: Rings fly apart
+            if (win) {
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 500]);
                 rings.forEach((r, i) => {
-                    new TWEEN.Tween(r.position).to({ x: r.position.x * 6, y: -4, z: -5 }, 1500).start();
+                    new TWEEN.Tween(r.position).to({ x: r.position.x * 10, y: -10 }, 1500).easing(TWEEN.Easing.Exponential.In).start();
                 });
-                
                 setTimeout(() => {
                     document.getElementById('ui-layer').style.display = 'none';
                     document.getElementById('reward').style.display = 'block';
-                }, 800);
+                }, 1000);
             } else {
-                if (navigator.vibrate) navigator.vibrate(500);
-                // Fail: Heavy shake
-                new TWEEN.Tween(cryptexGroup.position).to({ x: 0.15 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
+                // FAIL ANIMATION: Red Flash & Violent Shake
+                if (navigator.vibrate) navigator.vibrate(600);
+                
+                new TWEEN.Tween(errorLight).to({ intensity: 3 }, 100).yoyo(true).repeat(3).start();
+                new TWEEN.Tween(cryptexGroup.position)
+                    .to({ x: 0.2 }, 50).repeat(10).yoyo(true)
+                    .to({ x: 0 }, 50).start();
             }
         }
 
@@ -215,8 +232,7 @@
             requestAnimationFrame(animate);
             TWEEN.update(time);
             if (!isDragging) {
-                cryptexGroup.rotation.y = Math.sin(time / 2500) * 0.15;
-                cryptexGroup.rotation.x = Math.cos(time / 3000) * 0.05;
+                cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.1;
             }
             renderer.render(scene, camera);
         }
