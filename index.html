@@ -3,82 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nyisd ki a dobozt</title>
+    <title>Cryptex</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5; }
-        
-        /* PIN Pad Styles */
-        #unlock-screen { text-align: center; }
-        .pin-display { font-size: 2rem; letter-spacing: 10px; margin-bottom: 20px; height: 40px; border-bottom: 2px solid #333; width: 150px; margin-left: auto; margin-right: auto; }
-        .keypad { display: grid; grid-template-columns: repeat(3, 70px); gap: 10px; }
-        .key { width: 70px; height: 70px; border-radius: 50%; border: 1px solid #ccc; background: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .key:active { background: #ddd; }
+        :root {
+            --gold: #d4af37;
+            --dark-metal: #2c2c2c;
+            --inner-metal: #444;
+        }
 
-        /* Box Reveal Styles */
-        #box-content { display: none; text-align: center; animation: fadeIn 1s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .qr-reward { width: 250px; height: 250px; margin-top: 20px; border: 5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Georgia', serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h2 { color: var(--gold); text-shadow: 0 2px 4px black; margin-bottom: 40px; }
+
+        /* Cryptex Container */
+        .cryptex-container {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: linear-gradient(to bottom, #444, #222, #444);
+            border: 4px solid var(--gold);
+            border-radius: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            transition: transform 0.5s ease;
+        }
+
+        /* Individual Wheel Styling */
+        .wheel-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .wheel {
+            width: 60px;
+            height: 60px;
+            background: var(--inner-metal);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--gold);
+            user-select: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .nav-btn {
+            background: var(--gold);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .nav-btn:active { transform: scale(0.9); background: #b8860b; }
+
+        /* Submit Button */
+        #submit-btn {
+            margin-top: 40px;
+            padding: 15px 40px;
+            background: var(--gold);
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #8b6d0d;
+        }
+
+        #submit-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        /* ANIMATIONS */
+        .error-shake {
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .success-open {
+            animation: slideOpen 1s forwards;
+        }
+
+        @keyframes slideOpen {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: translateX(100px); opacity: 0.5; }
+            100% { transform: translateX(500px); opacity: 0; display: none; }
+        }
+
+        /* Reward Box */
+        #reward {
+            display: none;
+            text-align: center;
+            animation: fadeIn 1s 0.5s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .qr-image {
+            width: 250px;
+            border: 10px solid white;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
-    <!-- PIN ENTRY SCREEN -->
-    <div id="unlock-screen">
-        <h2>Tápláld be a PIN-t</h2>
-        <div class="pin-display" id="display">****</div>
-        <div class="keypad">
-            <div class="key" onclick="press(1)">1</div>
-            <div class="key" onclick="press(2)">2</div>
-            <div class="key" onclick="press(3)">3</div>
-            <div class="key" onclick="press(4)">4</div>
-            <div class="key" onclick="press(5)">5</div>
-            <div class="key" onclick="press(6)">6</div>
-            <div class="key" onclick="press(7)">7</div>
-            <div class="key" onclick="press(8)">8</div>
-            <div class="key" onclick="press(9)">9</div>
-            <div class="key" style="visibility:hidden"></div>
-            <div class="key" onclick="press(0)">0</div>
-            <div class="key" onclick="clearPin()">C</div>
+    <div id="game-screen">
+        <h2>Add meg a kódot a Cryptex feltöréséhez</h2>
+        
+        <div class="cryptex-container" id="cryptex">
+            <!-- Wheel 1 -->
+            <div class="wheel-wrapper">
+                <button class="nav-btn" onclick="changeDigit(0, 1)">▲</button>
+                <div class="wheel" id="w0">0</div>
+                <button class="nav-btn" onclick="changeDigit(0, -1)">▼</button>
+            </div>
+            <!-- Wheel 2 -->
+            <div class="wheel-wrapper">
+                <button class="nav-btn" onclick="changeDigit(1, 1)">▲</button>
+                <div class="wheel" id="w1">0</div>
+                <button class="nav-btn" onclick="changeDigit(1, -1)">▼</button>
+            </div>
+            <!-- Wheel 3 -->
+            <div class="wheel-wrapper">
+                <button class="nav-btn" onclick="changeDigit(2, 1)">▲</button>
+                <div class="wheel" id="w2">0</div>
+                <button class="nav-btn" onclick="changeDigit(2, -1)">▼</button>
+            </div>
+            <!-- Wheel 4 -->
+            <div class="wheel-wrapper">
+                <button class="nav-btn" onclick="changeDigit(3, 1)">▲</button>
+                <div class="wheel" id="w3">0</div>
+                <button class="nav-btn" onclick="changeDigit(3, -1)">▼</button>
+            </div>
         </div>
+
+        <button id="submit-btn" onclick="checkCode()">Nyitás</button>
     </div>
 
-    <!-- THE "BOX" (REWARD CONTENT) -->
-    <div id="box-content">
-        <h1>📦 A doboz nyitva!</h1>
+    <div id="reward">
+        <h1 style="color: var(--gold);">Nyitva</h1>
         <p>Olvasd be a következő nyomot:</p>
-        <!-- Replace with your actual QR code image -->
-        <img src="reward-qr.png" alt="Reward QR Code" class="qr-reward">
+        <img src="reward-qr.png" class="qr-image" alt="Secret QR">
     </div>
 
     <script>
-        const CORRECT_PIN = "3985"; // Set your PIN here
-        let input = "";
+        const CORRECT_PIN = [3, 9, 8, 5]; // Set your pin here
+        let currentDigits = [0, 0, 0, 0];
 
-        function press(num) {
-            if (input.length < 4) {
-                input += num;
-                document.getElementById('display').innerText = "*".repeat(input.length);
-            }
-            if (input === CORRECT_PIN) {
-                unlock();
-            } else if (input.length === 4) {
-                setTimeout(clearPin, 300); // Clear if wrong after a short delay
-            }
-        }
-
-        function clearPin() {
-            input = "";
-            document.getElementById('display').innerText = "****";
-        }
-
-        function unlock() {
-            // 2. SUCCESS VIBRATION: Long 200ms buzz when the box opens
-            if (navigator.vibrate) {
-                window.navigator.vibrate(200);
-            }
+        function changeDigit(wheelIdx, direction) {
+            // Update digit logic
+            currentDigits[wheelIdx] = (currentDigits[wheelIdx] + direction + 10) % 10;
+            document.getElementById(`w${wheelIdx}`).innerText = currentDigits[wheelIdx];
             
-            document.getElementById('unlock-screen').style.display = 'none';
-            document.getElementById('box-content').style.display = 'block';
+            // Subtle feedback on every turn
+            if (navigator.vibrate) navigator.vibrate(30);
+        }
+
+        function checkCode() {
+            const cryptex = document.getElementById('cryptex');
+            const isCorrect = currentDigits.every((val, index) => val === CORRECT_PIN[index]);
+
+            if (isCorrect) {
+                // SUCCESS
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
+                
+                cryptex.classList.add('success-open');
+                document.getElementById('submit-btn').style.display = 'none';
+                
+                setTimeout(() => {
+                    document.getElementById('game-screen').style.display = 'none';
+                    document.getElementById('reward').style.display = 'block';
+                }, 600);
+
+            } else {
+                // FAILURE
+                if (navigator.vibrate) navigator.vibrate(400); // Long angry buzz
+                
+                cryptex.classList.add('error-shake');
+                
+                // Remove class so it can be triggered again
+                setTimeout(() => {
+                    cryptex.classList.remove('error-shake');
+                }, 400);
+            }
         }
     </script>
 </body>
