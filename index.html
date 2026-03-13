@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyisd ki a dobozt</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        
+        /* PIN Pad Styles */
+        #unlock-screen { text-align: center; }
+        .pin-display { font-size: 2rem; letter-spacing: 10px; margin-bottom: 20px; height: 40px; border-bottom: 2px solid #333; width: 150px; margin-left: auto; margin-right: auto; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 70px); gap: 10px; }
+        .key { width: 70px; height: 70px; border-radius: 50%; border: 1px solid #ccc; background: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .key:active { background: #ddd; }
+
+        /* Box Reveal Styles */
+        #box-content { display: none; text-align: center; animation: fadeIn 1s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .qr-reward { width: 250px; height: 250px; margin-top: 20px; border: 5px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body>
+
+    <!-- PIN ENTRY SCREEN -->
+    <div id="unlock-screen">
+        <h2>Tápláld be a PIN-t</h2>
+        <div class="pin-display" id="display">****</div>
+        <div class="keypad">
+            <div class="key" onclick="press(1)">1</div>
+            <div class="key" onclick="press(2)">2</div>
+            <div class="key" onclick="press(3)">3</div>
+            <div class="key" onclick="press(4)">4</div>
+            <div class="key" onclick="press(5)">5</div>
+            <div class="key" onclick="press(6)">6</div>
+            <div class="key" onclick="press(7)">7</div>
+            <div class="key" onclick="press(8)">8</div>
+            <div class="key" onclick="press(9)">9</div>
+            <div class="key" style="visibility:hidden"></div>
+            <div class="key" onclick="press(0)">0</div>
+            <div class="key" onclick="clearPin()">C</div>
+        </div>
+    </div>
+
+    <!-- THE "BOX" (REWARD CONTENT) -->
+    <div id="box-content">
+        <h1>📦 A doboz nyitva!</h1>
+        <p>Olvasd be a következő nyomot:</p>
+        <!-- Replace with your actual QR code image -->
+        <img src="reward-qr.png" alt="Reward QR Code" class="qr-reward">
+    </div>
+
+    <script>
+        const CORRECT_PIN = "3985"; // Set your PIN here
+        let input = "";
+
+        function press(num) {
+            if (input.length < 4) {
+                input += num;
+                document.getElementById('display').innerText = "*".repeat(input.length);
+            }
+            if (input === CORRECT_PIN) {
+                unlock();
+            } else if (input.length === 4) {
+                setTimeout(clearPin, 300); // Clear if wrong after a short delay
+            }
+        }
+
+        function clearPin() {
+            input = "";
+            document.getElementById('display').innerText = "****";
+        }
+
+        function unlock() {
+            document.getElementById('unlock-screen').style.display = 'none';
+            document.getElementById('box-content').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
