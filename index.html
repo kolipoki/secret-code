@@ -5,215 +5,182 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cryptex</title>
     <style>
-        :root {
-            --gold: #d4af37;
-            --dark-metal: #2c2c2c;
-            --inner-metal: #444;
+        body { margin: 0; background: #121212; font-family: 'Georgia', serif; overflow: hidden; color: white; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 40px 0; box-sizing: border-box; }
+        
+        .controls { display: flex; gap: 25px; pointer-events: auto; }
+        .wheel-ctrl { display: flex; flex-direction: column; gap: 140px; } /* Spacing for the 3D rings */
+        
+        .btn { 
+            background: #d4af37; border: none; width: 50px; height: 50px; 
+            border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1.5rem;
+            box-shadow: 0 4px 0 #8b6d0d; transition: 0.1s;
         }
+        .btn:active { transform: translateY(3px); box-shadow: none; }
 
-        body {
-            background: #1a1a1a;
-            color: white;
-            font-family: 'Georgia', serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        h2 { color: var(--gold); text-shadow: 0 2px 4px black; margin-bottom: 40px; }
-
-        /* Cryptex Container */
-        .cryptex-container {
-            display: flex;
-            gap: 10px;
-            padding: 20px;
-            background: linear-gradient(to bottom, #444, #222, #444);
-            border: 4px solid var(--gold);
-            border-radius: 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-            position: relative;
-            transition: transform 0.5s ease;
-        }
-
-        /* Individual Wheel Styling */
-        .wheel-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .wheel {
-            width: 60px;
-            height: 60px;
-            background: var(--inner-metal);
-            border: 2px solid var(--gold);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--gold);
-            user-select: none;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        .nav-btn {
-            background: var(--gold);
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 1.2rem;
-        }
-
-        .nav-btn:active { transform: scale(0.9); background: #b8860b; }
-
-        /* Submit Button */
         #submit-btn {
-            margin-top: 40px;
-            padding: 15px 40px;
-            background: var(--gold);
-            border: none;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 5px;
-            cursor: pointer;
-            box-shadow: 0 4px 0 #8b6d0d;
+            pointer-events: auto; background: #d4af37; border: none; padding: 15px 40px;
+            font-size: 1.2rem; font-weight: bold; border-radius: 5px; cursor: pointer;
+            box-shadow: 0 5px 0 #8b6d0d; margin-bottom: 20px;
         }
 
-        #submit-btn:active { transform: translateY(4px); box-shadow: none; }
-
-        /* ANIMATIONS */
-        .error-shake {
-            animation: shake 0.4s;
+        #reward { 
+            display: none; position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); text-align: center; 
+            background: rgba(0,0,0,0.9); padding: 30px; border: 3px solid #d4af37; border-radius: 15px;
         }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .success-open {
-            animation: slideOpen 1s forwards;
-        }
-
-        @keyframes slideOpen {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: translateX(100px); opacity: 0.5; }
-            100% { transform: translateX(500px); opacity: 0; display: none; }
-        }
-
-        /* Reward Box */
-        #reward {
-            display: none;
-            text-align: center;
-            animation: fadeIn 1s 0.5s both;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.5); }
-            to { opacity: 1; transform: scale(1); }
-        }
-
-        .qr-image {
-            width: 250px;
-            border: 10px solid white;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
+        .qr-image { width: 200px; border: 5px solid white; margin-top: 15px; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="game-screen">
-        <h2>Add meg a kódot a Cryptex feltöréséhez</h2>
+    <div id="ui-layer">
+        <h2 style="color: #d4af37; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">Törd fel a CRYPTEXet</h2>
         
-        <div class="cryptex-container" id="cryptex">
-            <!-- Wheel 1 -->
-            <div class="wheel-wrapper">
-                <button class="nav-btn" onclick="changeDigit(0, 1)">▲</button>
-                <div class="wheel" id="w0">0</div>
-                <button class="nav-btn" onclick="changeDigit(0, -1)">▼</button>
+        <div class="controls">
+            <!-- 4 Sets of buttons for 4 rings -->
+            <div class="wheel-ctrl">
+                <button class="btn" onclick="rotateRing(0, 1)">▲</button>
+                <button class="btn" onclick="rotateRing(0, -1)">▼</button>
             </div>
-            <!-- Wheel 2 -->
-            <div class="wheel-wrapper">
-                <button class="nav-btn" onclick="changeDigit(1, 1)">▲</button>
-                <div class="wheel" id="w1">0</div>
-                <button class="nav-btn" onclick="changeDigit(1, -1)">▼</button>
+            <div class="wheel-ctrl">
+                <button class="btn" onclick="rotateRing(1, 1)">▲</button>
+                <button class="btn" onclick="rotateRing(1, -1)">▼</button>
             </div>
-            <!-- Wheel 3 -->
-            <div class="wheel-wrapper">
-                <button class="nav-btn" onclick="changeDigit(2, 1)">▲</button>
-                <div class="wheel" id="w2">0</div>
-                <button class="nav-btn" onclick="changeDigit(2, -1)">▼</button>
+            <div class="wheel-ctrl">
+                <button class="btn" onclick="rotateRing(2, 1)">▲</button>
+                <button class="btn" onclick="rotateRing(2, -1)">▼</button>
             </div>
-            <!-- Wheel 4 -->
-            <div class="wheel-wrapper">
-                <button class="nav-btn" onclick="changeDigit(3, 1)">▲</button>
-                <div class="wheel" id="w3">0</div>
-                <button class="nav-btn" onclick="changeDigit(3, -1)">▼</button>
+            <div class="wheel-ctrl">
+                <button class="btn" onclick="rotateRing(3, 1)">▲</button>
+                <button class="btn" onclick="rotateRing(3, -1)">▼</button>
             </div>
         </div>
 
-        <button id="submit-btn" onclick="checkCode()">Nyitás</button>
+        <button id="submit-btn" onclick="checkCode()">Cryptex nyitása</button>
     </div>
 
     <div id="reward">
-        <h1 style="color: var(--gold);">Nyitva</h1>
+        <h1 style="color: #d4af37;">Nyitás engedélyezve</h1>
         <p>Olvasd be a következő nyomot:</p>
-        <img src="reward-qr.png" class="qr-image" alt="Secret QR">
+        <img src="reward-qr.png" class="qr-image">
     </div>
 
-    <script>
-        const CORRECT_PIN = [3, 9, 8, 5]; // Set your pin here
-        let currentDigits = [0, 0, 0, 0];
+    <!-- Load Three.js and Tween for animation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
-        function changeDigit(wheelIdx, direction) {
-            // Update digit logic
-            currentDigits[wheelIdx] = (currentDigits[wheelIdx] + direction + 10) % 10;
-            document.getElementById(`w${wheelIdx}`).innerText = currentDigits[wheelIdx];
+    <script>
+        const PIN = [3, 9, 8, 5]; // SET YOUR PIN HERE
+        let currentStatus = [0, 0, 0, 0];
+        const rings = [];
+        
+        // 1. Setup Scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0xd4af37, 1);
+        pointLight.position.set(5, 5, 5);
+        scene.add(pointLight);
+
+        // 2. Create Rings
+        const ringGroup = new THREE.Group();
+        const loader = new THREE.TextureLoader();
+
+        function createRing(xPos) {
+            const geometry = new THREE.CylinderGeometry(1, 1, 0.6, 32);
             
-            // Subtle feedback on every turn
-            if (navigator.vibrate) navigator.vibrate(30);
+            // Create a texture for numbers 0-9
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#222'; ctx.fillRect(0,0,512,64);
+            ctx.fillStyle = '#d4af37'; ctx.font = 'bold 40px Serif';
+            ctx.textAlign = 'center';
+            for(let i=0; i<10; i++) {
+                ctx.fillText(i, (i * 51.2) + 25, 45);
+            }
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            
+            const material = new THREE.MeshStandardMaterial({ 
+                map: tex, 
+                metalness: 0.9, 
+                roughness: 0.2, 
+                color: 0x888888 
+            });
+            
+            const ring = new THREE.Mesh(geometry, material);
+            ring.rotation.z = Math.PI / 2; // Flip cylinder sideways
+            ring.position.x = xPos;
+            return ring;
         }
 
-        function checkCode() {
-            const cryptex = document.getElementById('cryptex');
-            const isCorrect = currentDigits.every((val, index) => val === CORRECT_PIN[index]);
+        for(let i=0; i<4; i++) {
+            const r = createRing((i - 1.5) * 0.7);
+            rings.push(r);
+            ringGroup.add(r);
+        }
+        scene.add(ringGroup);
+        camera.position.z = 4;
 
-            if (isCorrect) {
-                // SUCCESS
+        // 3. Rotation Logic
+        function rotateRing(idx, dir) {
+            currentStatus[idx] = (currentStatus[idx] - dir + 10) % 10;
+            
+            new TWEEN.Tween(rings[idx].rotation)
+                .to({ x: rings[idx].rotation.x + (dir * (Math.PI * 2 / 10)) }, 300)
+                .easing(TWEEN.Easing.Back.Out)
+                .start();
+
+            if (navigator.vibrate) navigator.vibrate(40);
+        }
+
+        // 4. Submit Logic
+        function checkCode() {
+            const success = currentStatus.every((val, i) => val === PIN[i]);
+            
+            if (success) {
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 300]);
                 
-                cryptex.classList.add('success-open');
-                document.getElementById('submit-btn').style.display = 'none';
+                // Animation: Slide rings apart
+                rings.forEach((r, i) => {
+                    new TWEEN.Tween(r.position).to({ x: r.position.x * 5, y: -5 }, 1000).start();
+                });
                 
                 setTimeout(() => {
-                    document.getElementById('game-screen').style.display = 'none';
+                    document.getElementById('ui-layer').style.display = 'none';
                     document.getElementById('reward').style.display = 'block';
-                }, 600);
-
+                }, 500);
             } else {
-                // FAILURE
-                if (navigator.vibrate) navigator.vibrate(400); // Long angry buzz
-                
-                cryptex.classList.add('error-shake');
-                
-                // Remove class so it can be triggered again
-                setTimeout(() => {
-                    cryptex.classList.remove('error-shake');
-                }, 400);
+                if (navigator.vibrate) navigator.vibrate(500);
+                // Shake Camera
+                new TWEEN.Tween(camera.position).to({ x: 0.2 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
             }
         }
+
+        // Render Loop
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
