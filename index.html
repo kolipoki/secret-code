@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
 
   <style>
-    /* ─── Reset & Base ─── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -21,7 +20,7 @@
       --bg-mid:      #110e08;
       --shadow-dark: rgba(0,0,0,0.9);
       --shadow-gold: rgba(200,146,42,0.35);
-      --ring-h:      64px;  /* visible height of one digit on wheel */
+      --ring-h:      64px;
     }
 
     html, body {
@@ -38,7 +37,6 @@
       user-select: none;
     }
 
-    /* ─── Starfield / Ambient Background ─── */
     body::before {
       content: '';
       position: fixed; inset: 0;
@@ -49,7 +47,6 @@
       z-index: 0;
     }
 
-    /* ─── Scene Wrapper ─── */
     .scene {
       position: relative;
       z-index: 1;
@@ -59,7 +56,6 @@
       gap: 0;
     }
 
-    /* ─── Title ─── */
     .title {
       font-family: 'Cinzel', serif;
       font-weight: 900;
@@ -71,21 +67,12 @@
       text-transform: uppercase;
     }
 
-    /* ─── Cryptex Outer Shell ─── */
-    /*
-      The cryptex is made of three parts:
-        .cryptex-left  – left end cap (slides left on unlock)
-        .cryptex-right – right end cap (slides right on unlock)
-        .wheels-zone   – the four rotating digit rings in the center
-      All sit inside .cryptex-body which uses perspective for 3-D feel.
-    */
     .cryptex-body {
       display: flex;
       align-items: stretch;
       perspective: 800px;
     }
 
-    /* ─── End Caps ─── */
     .cap {
       width: clamp(44px, 10vw, 64px);
       height: clamp(120px, 26vw, 180px);
@@ -108,18 +95,12 @@
       content: '';
       position: absolute; inset: 6px;
       border-radius: 50% / 50%;
-      background: linear-gradient(
-        160deg,
-        rgba(255,220,120,0.25) 0%,
-        transparent 50%,
-        rgba(0,0,0,0.3) 100%
-      );
+      background: linear-gradient(160deg, rgba(255,220,120,0.25) 0%, transparent 50%, rgba(0,0,0,0.3) 100%);
       pointer-events: none;
     }
     .cap-left  { border-radius: 50% 10% 10% 50% / 50% 8% 8% 50%; }
     .cap-right { border-radius: 10% 50% 50% 10% / 8% 50% 50% 8%; }
 
-    /* ─── Wheels Zone ─── */
     .wheels-zone {
       display: flex;
       align-items: stretch;
@@ -127,8 +108,6 @@
       position: relative;
       z-index: 1;
     }
-
-    /* Top & bottom ridge bands that run across all wheels */
     .wheels-zone::before,
     .wheels-zone::after {
       content: '';
@@ -143,12 +122,6 @@
     .wheels-zone::before { top: 0; }
     .wheels-zone::after  { bottom: 0; }
 
-    /* ─── Individual Wheel ─── */
-    /*
-      Each .wheel is a clip container. Inside is .wheel-strip:
-      a tall column of digits (0–9 repeated 3× for infinite-feel scroll)
-      that translates vertically as the user drags.
-    */
     .wheel {
       width: clamp(58px, 14vw, 82px);
       height: 100%;
@@ -171,10 +144,7 @@
       border-right: 1px solid rgba(200,150,40,0.3);
     }
     .wheel:active { cursor: grabbing; }
-
-    /* Gradient overlays top/bottom to create "depth" inside the cylinder */
-    .wheel::before,
-    .wheel::after {
+    .wheel::before, .wheel::after {
       content: '';
       position: absolute;
       left: 0; right: 0;
@@ -184,26 +154,16 @@
     }
     .wheel::before {
       top: 0;
-      background: linear-gradient(to bottom,
-        rgba(10,5,2,0.92) 0%,
-        rgba(10,5,2,0.4)  60%,
-        transparent       100%
-      );
+      background: linear-gradient(to bottom, rgba(10,5,2,0.92) 0%, rgba(10,5,2,0.4) 60%, transparent 100%);
     }
     .wheel::after {
       bottom: 0;
-      background: linear-gradient(to top,
-        rgba(10,5,2,0.92) 0%,
-        rgba(10,5,2,0.4)  60%,
-        transparent       100%
-      );
+      background: linear-gradient(to top, rgba(10,5,2,0.92) 0%, rgba(10,5,2,0.4) 60%, transparent 100%);
     }
 
-    /* Center selection window – gold highlight bar */
     .wheel-window {
       position: absolute;
-      top: 50%;
-      left: 0; right: 0;
+      top: 50%; left: 0; right: 0;
       height: var(--ring-h);
       transform: translateY(-50%);
       pointer-events: none;
@@ -211,20 +171,15 @@
       border-top: 2px solid rgba(245,217,126,0.8);
       border-bottom: 2px solid rgba(245,217,126,0.8);
       background: rgba(245,200,80,0.06);
-      box-shadow:
-        inset 0 1px 6px rgba(245,217,126,0.2),
-        inset 0 -1px 6px rgba(245,217,126,0.2);
+      box-shadow: inset 0 1px 6px rgba(245,217,126,0.2), inset 0 -1px 6px rgba(245,217,126,0.2);
     }
 
-    /* ─── Digit Strip ─── */
     .wheel-strip {
       position: absolute;
-      left: 0; right: 0;
-      top: 0;
+      left: 0; right: 0; top: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      /* transition is added/removed by JS for snap animation */
       will-change: transform;
     }
 
@@ -238,51 +193,39 @@
       font-weight: 900;
       font-size: clamp(1.6rem, 5vw, 2.2rem);
       color: var(--gold-light);
-      text-shadow:
-        0 0 12px rgba(245,217,126,0.6),
-        0 2px 4px rgba(0,0,0,0.8);
+      text-shadow: 0 0 12px rgba(245,217,126,0.6), 0 2px 4px rgba(0,0,0,0.8);
       flex-shrink: 0;
       letter-spacing: -0.02em;
     }
 
-    /* ─── Engraved knurling lines on the wheel surface ─── */
     .wheel-knurl {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       z-index: 2;
       pointer-events: none;
       background-image: repeating-linear-gradient(
         to bottom,
-        transparent 0px,
-        transparent 10px,
-        rgba(0,0,0,0.18) 10px,
-        rgba(0,0,0,0.18) 11px
+        transparent 0px, transparent 10px,
+        rgba(0,0,0,0.18) 10px, rgba(0,0,0,0.18) 11px
       );
     }
 
-    /* ─── Separator rings between wheels ─── */
     .wheel-sep {
-      width: 8px;
-      height: 100%;
+      width: 8px; height: 100%;
       background: linear-gradient(to right, #4a2e08, #c8922a, #f5d97e, #c8922a, #4a2e08);
       box-shadow: 0 0 10px rgba(0,0,0,0.8);
       flex-shrink: 0;
     }
 
-    /* ─── Center shine overlay on the whole cryptex ─── */
     .cryptex-shine {
       position: absolute;
       top: 0; left: 0; right: 0;
       height: 38%;
-      background: linear-gradient(to bottom,
-        rgba(255,240,180,0.08) 0%,
-        transparent 100%
-      );
+      background: linear-gradient(to bottom, rgba(255,240,180,0.08) 0%, transparent 100%);
       pointer-events: none;
       z-index: 20;
     }
 
-    /* ─── Status / Instruction text ─── */
+    /* ─── Status ─── */
     .status {
       margin-top: 28px;
       font-family: 'Cinzel', serif;
@@ -312,17 +255,11 @@
       80%      { transform: translateX(6px); }
     }
 
-    /* ─── Unlock Overlay ─── */
-    /*
-      On correct PIN:
-      .cap-left slides left, .cap-right slides right,
-      revealing .unlock-reveal in the center gap.
-    */
+    /* ─── Unlock animation ─── */
     .cryptex-body.unlocked .cap-left  { transform: translateX(-90px); }
     .cryptex-body.unlocked .cap-right { transform: translateX(90px);  }
     .cryptex-body.unlocked .wheels-zone { opacity: 0; transition: opacity 0.4s 0.3s; }
 
-    /* ─── Hidden compartment ─── */
     .unlock-reveal {
       position: absolute;
       top: 50%; left: 50%;
@@ -331,7 +268,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       z-index: 30;
       pointer-events: none;
     }
@@ -348,6 +285,7 @@
       background: #fff;
       padding: 6px;
     }
+
     .unlock-label {
       font-family: 'Cinzel', serif;
       font-size: clamp(0.55rem, 2vw, 0.75rem);
@@ -355,16 +293,25 @@
       color: #50e890;
       text-shadow: 0 0 10px rgba(80,232,144,0.5);
     }
+
+    /* ─── Hint box: gold pill with dark readable text ─── */
     .unlock-hint {
       font-family: 'Cinzel', serif;
-      font-size: clamp(0.55rem, 2vw, 0.75rem);
-      letter-spacing: 0.25em;
-      color: #black;
-      text-shadow: 0 0 10px rgba(80,232,144,0.5);
-      background-color: #C8922A;
+      font-size: clamp(0.6rem, 2.2vw, 0.76rem);
+      line-height: 1.65;
+      letter-spacing: 0.06em;
+      color: #1a0e04;                                              /* dark brown — readable on gold */
+      background: linear-gradient(135deg, #f5d97e 0%, #c8922a 100%);
+      border-radius: 8px;
+      padding: 10px 16px;
+      max-width: clamp(190px, 52vw, 270px);
+      text-align: center;
+      box-shadow:
+        0 3px 14px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,245,200,0.5);
     }
 
-    /* ─── Reset Button (shown after unlock) ─── */
+    /* ─── Reset button ─── */
     .reset-btn {
       display: none;
       margin-top: 20px;
@@ -382,21 +329,13 @@
     }
     .reset-btn:hover { background: var(--gold-mid); color: #000; }
 
-    /* ─── Glow pulse on unlock ─── */
     @keyframes glow-pulse {
       0%,100% { box-shadow: 0 0 20px rgba(200,146,42,0.3); }
       50%      { box-shadow: 0 0 60px rgba(200,146,42,0.8), 0 0 100px rgba(200,146,42,0.3); }
     }
-    .cryptex-body.unlocked {
-      animation: glow-pulse 2s ease 0.6s infinite;
-    }
+    .cryptex-body.unlocked { animation: glow-pulse 2s ease 0.6s infinite; }
 
-    /* ─── Decorative Hint Dots ─── */
-    .hint-dots {
-      display: flex;
-      gap: 6px;
-      margin-top: 14px;
-    }
+    .hint-dots { display: flex; gap: 6px; margin-top: 14px; }
     .hint-dot {
       width: 7px; height: 7px;
       border-radius: 50%;
@@ -415,34 +354,21 @@
 <div class="scene">
   <div class="title">Titkos kód Cryptex</div>
 
-  <!-- Main cryptex body: end caps + wheels -->
   <div class="cryptex-body" id="cryptexBody">
-    <!-- Left end cap (slides away on unlock) -->
     <div class="cap cap-left"></div>
-
-    <!-- Rotating digit wheels zone -->
-    <div class="wheels-zone" id="wheelsZone">
-      <!-- 4 wheels generated by JS -->
-    </div>
-
-    <!-- Right end cap -->
+    <div class="wheels-zone" id="wheelsZone"></div>
     <div class="cap cap-right"></div>
-
-    <!-- Overlay shine strip -->
     <div class="cryptex-shine"></div>
 
-    <!-- Hidden compartment revealed on correct PIN -->
     <div class="unlock-reveal" id="unlockReveal">
       <img src="reward-qr.png" alt="Reward QR Code" />
       <div class="unlock-label">— Nyitva —</div>
-      <div class="unlock-hint">Olvasd be a kódot a Trail Sense nevű app-al. Menj az eszközökbe -> Beacons -> QR code</div>
+      <div class="unlock-hint">Olvasd be a kódot a Trail Sense nevű app-al.<br>Menj az eszközökbe → Beacons → QR code</div>
     </div>
   </div>
 
-  <!-- Feedback text -->
   <div class="status" id="status">Forgasd el a gyűrűket a cryptex feltöréséhez.</div>
 
-  <!-- Progress dots showing how many digits are correct -->
   <div class="hint-dots" id="hintDots">
     <div class="hint-dot"></div>
     <div class="hint-dot"></div>
@@ -450,344 +376,165 @@
     <div class="hint-dot"></div>
   </div>
 
-  <!-- Reset button (visible only after unlock) -->
   <button class="reset-btn" id="resetBtn" onclick="resetCryptex()">Visszaállítás</button>
 </div>
 
 <script>
-/* ══════════════════════════════════════════════════
-   CRYPTEX LOCK — Core Logic
-   ══════════════════════════════════════════════════
-
-   Architecture:
-   - WHEEL_COUNT = 4 digit wheels
-   - Each wheel has digits 0-9 repeated 3 times (30 items total)
-     so the user can always scroll smoothly in both directions.
-   - currentIndex[i] tracks the selected digit (0-9) for wheel i.
-   - The strip is kept in a "virtual center" of the 30-item list
-     and re-centred quietly when near the edges (infinite scroll trick).
-   ══════════════════════════════════════════════════ */
-
-  const CORRECT_PIN   = [3, 9, 8, 5];   // ← change this to set the PIN
+  const CORRECT_PIN   = [3, 9, 8, 5];
   const WHEEL_COUNT   = 4;
   const DIGITS        = [0,1,2,3,4,5,6,7,8,9];
-  const REPEATS       = 3;               // how many times digits are repeated
-  const TOTAL_ITEMS   = DIGITS.length * REPEATS;  // 30
-  const CENTER_OFFSET = DIGITS.length;   // start scrolled to the middle repeat
-  const RING_H        = 64;              // px — must match CSS --ring-h
+  const REPEATS       = 3;
+  const TOTAL_ITEMS   = DIGITS.length * REPEATS;
+  const CENTER_OFFSET = DIGITS.length;
+  const RING_H        = 64;
 
-  /* State per wheel */
   const state = Array.from({ length: WHEEL_COUNT }, () => ({
-    index:      CENTER_OFFSET,   // position in the 30-item list
-    offset:     0,               // pixel offset during drag
-    dragging:   false,
-    startY:     0,
-    startOffset:0,
-    strip:      null,            // DOM element
-    value:      0,               // current digit shown (0-9)
-    lastValue:  -1,              // for change detection (haptic)
+    index: CENTER_OFFSET, offset: 0, dragging: false,
+    startY: 0, startOffset: 0, strip: null, value: 0, lastValue: -1,
   }));
 
   let unlocked = false;
-
-  /* ── Build DOM ── */
   const zone = document.getElementById('wheelsZone');
 
   function buildWheels() {
     zone.innerHTML = '';
     for (let w = 0; w < WHEEL_COUNT; w++) {
-      if (w > 0) {
-        const sep = document.createElement('div');
-        sep.className = 'wheel-sep';
-        zone.appendChild(sep);
-      }
-
+      if (w > 0) { const sep = document.createElement('div'); sep.className = 'wheel-sep'; zone.appendChild(sep); }
       const wheel = document.createElement('div');
       wheel.className = 'wheel';
       wheel.dataset.wheel = w;
-
-      /* Knurl texture */
-      const knurl = document.createElement('div');
-      knurl.className = 'wheel-knurl';
-      wheel.appendChild(knurl);
-
-      /* Center highlight window */
-      const win = document.createElement('div');
-      win.className = 'wheel-window';
-      wheel.appendChild(win);
-
-      /* Digit strip: digits repeated REPEATS times */
-      const strip = document.createElement('div');
-      strip.className = 'wheel-strip';
-
-      const allDigits = [];
+      const knurl = document.createElement('div'); knurl.className = 'wheel-knurl'; wheel.appendChild(knurl);
+      const win   = document.createElement('div'); win.className   = 'wheel-window'; wheel.appendChild(win);
+      const strip = document.createElement('div'); strip.className = 'wheel-strip';
       for (let r = 0; r < REPEATS; r++) {
-        DIGITS.forEach(d => allDigits.push(d));
+        DIGITS.forEach(d => {
+          const span = document.createElement('div'); span.className = 'digit'; span.textContent = d; strip.appendChild(span);
+        });
       }
-      allDigits.forEach(d => {
-        const span = document.createElement('div');
-        span.className = 'digit';
-        span.textContent = d;
-        strip.appendChild(span);
-      });
-
       wheel.appendChild(strip);
       zone.appendChild(wheel);
-
       state[w].strip = strip;
-      state[w].index = CENTER_OFFSET;   // start at digit 0 in middle repeat
+      state[w].index = CENTER_OFFSET;
       applyTransform(w, false);
-
-      /* Attach pointer/touch events */
       attachEvents(wheel, w);
-      /* Attach mouse-wheel scroll events */
       wheel.addEventListener('wheel', onWheel.bind(null, w), { passive: false });
     }
   }
 
-  /* ─────────────────────────────────────────────
-     TRANSFORM: move the strip so selected item
-     sits in the vertical center of the wheel.
-     offsetY = extra pixel offset during drag.
-  ───────────────────────────────────────────── */
+  /* TRANSFORM: centres the selected digit in the wheel viewport */
   function applyTransform(w, animate = true) {
     const s = state[w];
-    const wheelEl = zone.querySelectorAll('.wheel')[w];
-    const wheelH  = wheelEl ? wheelEl.offsetHeight : 140;
+    const wheelEl  = zone.querySelectorAll('.wheel')[w];
+    const wheelH   = wheelEl ? wheelEl.offsetHeight : 140;
     const centerPx = wheelH / 2 - RING_H / 2;
-
-    /* Position so that s.index row is at center, plus drag offset */
     const translateY = centerPx - s.index * RING_H + s.offset;
-
-    if (animate) {
-      s.strip.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1)';
-    } else {
-      s.strip.style.transition = 'none';
-    }
-    s.strip.style.transform = `translateY(${translateY}px)`;
-
-    /* Update current digit value */
+    s.strip.style.transition = animate ? 'transform 0.25s cubic-bezier(0.22,1,0.36,1)' : 'none';
+    s.strip.style.transform  = `translateY(${translateY}px)`;
     s.value = DIGITS[s.index % DIGITS.length];
   }
 
-  /* ─────────────────────────────────────────────
-     HAPTIC FEEDBACK
-     Uses the Vibration API — a short 20ms buzz
-     each time the wheel clicks to a new digit.
-     Most Android browsers support this; iOS Safari
-     does not, so we guard with a feature check.
-  ───────────────────────────────────────────── */
-  function haptic() {
-    if ('vibrate' in navigator) {
-      navigator.vibrate(18);   // 18ms — subtle click feel
-    }
-  }
+  /* HAPTIC FEEDBACK: 18ms buzz on each digit step */
+  function haptic() { if ('vibrate' in navigator) navigator.vibrate(18); }
 
-  /* ─────────────────────────────────────────────
-     SNAP: after drag ends, snap the strip so the
-     nearest digit is perfectly centred.
-     Clamps index to valid range; also re-centres
-     within the repeated list if we drift to the
-     edges, enabling pseudo-infinite scroll.
-  ───────────────────────────────────────────── */
+  /* SNAP: nearest-digit snap after drag release */
   function snapWheel(w) {
     const s = state[w];
-
-    /* Round index to nearest whole number based on pixel offset */
-    const moved = Math.round(-s.offset / RING_H);
-    s.index += moved;
+    s.index += Math.round(-s.offset / RING_H);
     s.offset = 0;
-
-    /* Keep within the 30-item list */
-    if (s.index < 0)           s.index += DIGITS.length;
+    if (s.index < 0)            s.index += DIGITS.length;
     if (s.index >= TOTAL_ITEMS) s.index -= DIGITS.length;
-
-    /* Re-centre quietly: if near edges, jump to equivalent middle position */
-    if (s.index < 2) {
-      s.index += DIGITS.length;
-      applyTransform(w, false);   // instant jump (invisible)
-    } else if (s.index > TOTAL_ITEMS - 3) {
-      s.index -= DIGITS.length;
-      applyTransform(w, false);
-    }
-
+    if (s.index < 2)                   { s.index += DIGITS.length; applyTransform(w, false); }
+    else if (s.index > TOTAL_ITEMS-3)  { s.index -= DIGITS.length; applyTransform(w, false); }
     s.value = DIGITS[s.index % DIGITS.length];
-
-    /* Haptic if digit changed */
-    if (s.value !== s.lastValue) {
-      haptic();
-      s.lastValue = s.value;
-    }
-
-    applyTransform(w, true);     // animate snap
-
-    /* Check PIN after snap settles */
+    if (s.value !== s.lastValue) { haptic(); s.lastValue = s.value; }
+    applyTransform(w, true);
     setTimeout(() => checkPin(), 280);
   }
 
-  /* ─────────────────────────────────────────────
-     EVENT BINDING: unified pointer events work
-     for both mouse and touch on all platforms.
-  ───────────────────────────────────────────── */
+  /* EVENT BINDING: pointer events cover mouse + touch uniformly */
   function attachEvents(wheel, w) {
     wheel.addEventListener('pointerdown', e => {
       if (unlocked) return;
-      state[w].dragging    = true;
-      state[w].startY      = e.clientY;
-      state[w].startOffset = state[w].offset;
-      wheel.setPointerCapture(e.pointerId);
-      state[w].strip.style.transition = 'none';
-      e.preventDefault();
+      state[w].dragging = true; state[w].startY = e.clientY; state[w].startOffset = state[w].offset;
+      wheel.setPointerCapture(e.pointerId); state[w].strip.style.transition = 'none'; e.preventDefault();
     }, { passive: false });
-
     wheel.addEventListener('pointermove', e => {
       if (!state[w].dragging) return;
-      const deltaY = e.clientY - state[w].startY;
-      state[w].offset = state[w].startOffset + deltaY;
-
-      /* Compute which digit we are hovering during drag for live haptic */
-      const rough = Math.round(-state[w].offset / RING_H);
-      const liveIdx = state[w].index + rough;
-      const liveVal = DIGITS[((liveIdx % DIGITS.length) + DIGITS.length) % DIGITS.length];
-      if (liveVal !== state[w].lastValue) {
-        haptic();
-        state[w].lastValue = liveVal;
-      }
-
-      applyTransform(w, false);
-      e.preventDefault();
+      state[w].offset = state[w].startOffset + (e.clientY - state[w].startY);
+      const liveVal = DIGITS[((state[w].index + Math.round(-state[w].offset / RING_H)) % DIGITS.length + DIGITS.length) % DIGITS.length];
+      if (liveVal !== state[w].lastValue) { haptic(); state[w].lastValue = liveVal; }
+      applyTransform(w, false); e.preventDefault();
     }, { passive: false });
-
-    wheel.addEventListener('pointerup',   () => { if (state[w].dragging) { state[w].dragging = false; snapWheel(w); } });
+    wheel.addEventListener('pointerup',     () => { if (state[w].dragging) { state[w].dragging = false; snapWheel(w); } });
     wheel.addEventListener('pointercancel', () => { if (state[w].dragging) { state[w].dragging = false; snapWheel(w); } });
   }
 
-  /* ─────────────────────────────────────────────
-     MOUSE WHEEL / TRACKPAD SCROLL
-     Each scroll step advances or retreats by one
-     digit, then snaps cleanly.
-  ───────────────────────────────────────────── */
+  /* MOUSE WHEEL: one scroll step = one digit */
   function onWheel(w, e) {
-    if (unlocked) return;
-    e.preventDefault();
-    const s = state[w];
-    if (s.dragging) return;
-
-    const dir = e.deltaY > 0 ? 1 : -1;
-    s.index += dir;
-
-    /* Keep in bounds */
+    if (unlocked) return; e.preventDefault();
+    const s = state[w]; if (s.dragging) return;
+    s.index += e.deltaY > 0 ? 1 : -1;
     if (s.index < 0)            s.index += DIGITS.length;
     if (s.index >= TOTAL_ITEMS) s.index -= DIGITS.length;
-
     s.value = DIGITS[s.index % DIGITS.length];
     if (s.value !== s.lastValue) { haptic(); s.lastValue = s.value; }
-
     applyTransform(w, true);
     clearTimeout(s._wheelTimer);
     s._wheelTimer = setTimeout(() => checkPin(), 300);
   }
 
-  /* ─────────────────────────────────────────────
-     PIN CHECK
-     Reads the current value from each wheel and
-     compares to CORRECT_PIN.
-
-     - All 4 correct → trigger unlock sequence.
-     - Partial match → update progress dots.
-     - No match      → subtle error feedback.
-  ───────────────────────────────────────────── */
+  /* PIN CHECK: compares each wheel value to CORRECT_PIN */
   function checkPin() {
     if (unlocked) return;
-
     const current = state.map(s => s.value);
     const dots    = document.querySelectorAll('.hint-dot');
-
     let correctCount = 0;
     for (let i = 0; i < WHEEL_COUNT; i++) {
       const ok = current[i] === CORRECT_PIN[i];
       dots[i].classList.toggle('active', ok);
       if (ok) correctCount++;
     }
-
-    if (correctCount === WHEEL_COUNT) {
-      unlock();
-    } else if (correctCount === 0 && current.some(v => v !== 0)) {
-      showStatus('Rossz kombináció - Próbáld újra', 'error');
-    } else {
-      showStatus('Forgasd el a gyűrűket a cryptex feltöréséhez.', '');
-    }
+    if (correctCount === WHEEL_COUNT) { unlock(); }
+    else if (correctCount === 0 && current.some(v => v !== 0)) { showStatus('Rossz kombináció – Próbáld újra', 'error'); }
+    else { showStatus('Forgasd el a gyűrűket a cryptex feltöréséhez.', ''); }
   }
 
-  /* ─────────────────────────────────────────────
-     UNLOCK SEQUENCE
-     1. Play a strong haptic pattern.
-     2. Swap status text to success.
-     3. Add .unlocked class → CSS transitions
-        slide caps apart, fade wheels, then scale
-        in the QR compartment.
-  ───────────────────────────────────────────── */
+  /* UNLOCK SEQUENCE: haptic burst → CSS animation → reveal QR */
   function unlock() {
     unlocked = true;
-
-    /* Unlock haptic: triple-buzz pattern */
-    if ('vibrate' in navigator) {
-      navigator.vibrate([60, 80, 60, 80, 120]);
-    }
-
+    if ('vibrate' in navigator) navigator.vibrate([60, 80, 60, 80, 120]);
     showStatus('— Nyitva —', 'success');
-
-    const body = document.getElementById('cryptexBody');
-    body.classList.add('unlocked');
-
-    /* Show reset button after animation settles */
-    setTimeout(() => {
-      document.getElementById('resetBtn').style.display = 'inline-block';
-    }, 1400);
+    document.getElementById('cryptexBody').classList.add('unlocked');
+    setTimeout(() => { document.getElementById('resetBtn').style.display = 'inline-block'; }, 1400);
   }
 
-  /* ─────────────────────────────────────────────
-     RESET: restore cryptex to locked state.
-  ───────────────────────────────────────────── */
   function resetCryptex() {
     unlocked = false;
-
     document.getElementById('cryptexBody').classList.remove('unlocked');
     document.getElementById('resetBtn').style.display = 'none';
     showStatus('Forgasd el a gyűrűket a cryptex feltöréséhez.', '');
-
-    /* Reset wheels to 0 0 0 0 */
     for (let w = 0; w < WHEEL_COUNT; w++) {
-      state[w].index     = CENTER_OFFSET;
-      state[w].offset    = 0;
-      state[w].lastValue = -1;
+      state[w].index = CENTER_OFFSET; state[w].offset = 0; state[w].lastValue = -1;
       applyTransform(w, true);
     }
     document.querySelectorAll('.hint-dot').forEach(d => d.classList.remove('active'));
   }
 
-  /* ─────────────────────────────────────────────
-     STATUS MESSAGE
-  ───────────────────────────────────────────── */
   let statusTimer;
   function showStatus(msg, type) {
     const el = document.getElementById('status');
-    el.textContent = msg;
-    el.className   = 'status ' + type;
+    el.textContent = msg; el.className = 'status ' + type;
     if (type === 'error') {
       clearTimeout(statusTimer);
       statusTimer = setTimeout(() => {
         el.textContent = 'Forgasd el a gyűrűket a cryptex feltöréséhez.';
-        el.className   = 'status';
+        el.className = 'status';
       }, 2000);
     }
   }
 
-  /* ── Init ── */
   buildWheels();
-  checkPin();   // initialize dots
-
-  /* Prevent default scroll on the body to avoid page scrolling during wheel drag */
+  checkPin();
   document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 </script>
 </body>
