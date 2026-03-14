@@ -46,184 +46,173 @@
 
     <script>
         const PIN = [1, 2, 3, 4]; 
-        let currentStatus = [0, 0, 0, 0];
-        const rings = [];
-        const STEP = (Math.PI * 2) / 10; 
+let currentStatus = [0, 0, 0, 0];
+const rings = [];
+const STEP = (Math.PI * 2) / 10; // 36 degrees per number
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+dirLight.position.set(5, 5, 10);
+scene.add(dirLight);
+
+// --- 1. THE PRECISION TEXTURE ---
+function createPrecisionTex() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024; 
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 85px Arial';
+    
+    for(let i = 0; i < 10; i++) {
+        const x = (i * 102.4) + 51.2; // Draw in center of the 102.4px slot
+        ctx.fillStyle = '#ffcc00';
+        ctx.fillText(i, x, 64);
         
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        // Guide lines (optional, helps see alignment during dev)
+        ctx.strokeStyle = '#222';
+        ctx.strokeRect(i * 102.4, 0, 102.4, 128);
+    }
+    
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    
+    // THE FIX: Offset the texture by half a segment (0.05) 
+    // so the center of the digit '0' sits at the UV start point.
+    tex.offset.x = -0.05; 
+    return tex;
+}
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        dirLight.position.set(5, 5, 10);
-        scene.add(dirLight);
+const cryptexGroup = new THREE.Group();
+// High segment count (64+) makes the cylinder look perfectly round
+const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 64);
 
-        // --- 1. PRECISION TEXTURE GENERATION ---
-        function createPrecisionTex() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 1024; // 102.4px per number
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-            
-            // Background
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.font = 'bold 80px Arial';
-            
-            for(let i = 0; i < 10; i++) {
-                const x = (i * 102.4) + 51.2; // Dead center of the segment
-                
-                // Subtle divider lines
-                ctx.strokeStyle = '#222';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(i * 102.4, 0, 102.4, 128);
+// THE FIX: Rotate the geometry so Three.js's UV starting point (0.0) 
+// is facing the camera at the start (+Z axis).
+ringGeo.rotateY(Math.PI / 2);
 
-                // Drawing number
-                ctx.fillStyle = '#ffcc00';
-                ctx.fillText(i, x, 64);
-            }
-            
-            const tex = new THREE.CanvasTexture(canvas);
-            tex.wrapS = THREE.RepeatWrapping;
-            
-            // ALIGNMENT MATH:
-            // Three.js Cylinder maps UV 0.75 to the front (+Z axis).
-            // Our '0' is at UV 0.05 (center of first segment).
-            // To put UV 0.05 at the 0.75 position: 0.75 - 0.05 = 0.70
-            tex.offset.x = 0.70; 
-            
-            return tex;
-        }
+for(let i=0; i<4; i++) {
+    const yPos = (1.5 - i) * 0.95;
+    const ringMat = new THREE.MeshPhongMaterial({ 
+        map: createPrecisionTex(), 
+        shininess: 50 
+    });
 
-        const cryptexGroup = new THREE.Group();
-        
-        // High segment count (80) ensures the numbers don't look "flat" or distorted
-        const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 80);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    ring.position.y = yPos;
+    ring.userData = { index: i };
+    rings.push(ring);
+    cryptexGroup.add(ring);
 
-        for(let i=0; i<4; i++) {
-            const yPos = (1.5 - i) * 0.95;
-            
-            // Unique material per ring so they can have independent texture offsets if needed
-            const ringMat = new THREE.MeshPhongMaterial({ 
-                map: createPrecisionTex(), 
-                shininess: 60,
-                specular: 0x444444 
-            });
+    // Visual Frame - centered at (0, yPos, 1.21)
+    const boxGeo = new THREE.BoxGeometry(0.75, 0.85, 0.1);
+    const edges = new THREE.EdgesGeometry(boxGeo);
+    const frame = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xd4af37, linewidth: 2 }));
+    frame.position.set(0, yPos, 1.21);
+    scene.add(frame);
+}
 
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.position.y = yPos;
-            ring.userData = { index: i };
-            rings.push(ring);
-            cryptexGroup.add(ring);
+scene.add(cryptexGroup);
+camera.position.set(0, 0, 7);
 
-            // 3D Visual Frame (The selection box)
-            // Width 0.78 fits the curvature of a 1.2 radius cylinder segment nicely
-            const boxGeo = new THREE.BoxGeometry(0.78, 0.82, 0.1);
-            const edges = new THREE.EdgesGeometry(boxGeo);
-            const frame = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xd4af37, linewidth: 2 }));
-            frame.position.set(0, yPos, 1.21); // Placed just in front of the ring surface
-            scene.add(frame);
-        }
+// --- 2. THE CORRECTED SNAP LOGIC ---
+function snapRing(ring) {
+    // Round to the nearest 36-degree increment
+    const targetRotation = Math.round(ring.rotation.y / STEP) * STEP;
+    
+    new TWEEN.Tween(ring.rotation)
+        .to({ y: targetRotation }, 600)
+        .easing(TWEEN.Easing.Back.Out)
+        .onUpdate(() => {
+            // Calculate current digit: 
+            // Negative rotation because dragging right turns the cylinder left
+            let digit = Math.round((-ring.rotation.y / STEP) % 10);
+            if (digit < 0) digit += 10;
+            currentStatus[ring.userData.index] = digit;
+        })
+        .start();
+}
 
-        scene.add(cryptexGroup);
-        camera.position.set(0, 0, 7);
+// --- 3. INTERACTION ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedRing = null, isDragging = false, lastX = 0;
 
-        // --- 2. THE SNAP LOGIC ---
-        function snapRing(ring) {
-            // Find the closest STEP (36 degrees)
-            const targetRotation = Math.round(ring.rotation.y / STEP) * STEP;
-            
-            new TWEEN.Tween(ring.rotation)
-                .to({ y: targetRotation }, 500)
-                .easing(TWEEN.Easing.Elastic.Out) // Mechanical "bounce"
-                .onUpdate(() => {
-                    // Calculate digit in real-time for feedback
-                    let digit = Math.round((-ring.rotation.y / STEP) % 10);
-                    if (digit < 0) digit += 10;
-                    currentStatus[ring.userData.index] = digit;
-                })
-                .start();
-        }
+function onDown(e) {
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    mouse.x = (x / window.innerWidth) * 2 - 1;
+    mouse.y = -(y / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(rings);
+    if (hits.length > 0) { 
+        selectedRing = hits[0].object; 
+        isDragging = true; 
+        lastX = x; 
+        TWEEN.removeAll(); 
+    }
+}
 
-        // --- 3. INTERACTION ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
-        let selectedRing = null, isDragging = false, lastX = 0;
+function onMove(e) {
+    if (!isDragging || !selectedRing) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const deltaX = x - lastX;
+    selectedRing.rotation.y += deltaX * 0.01;
+    lastX = x;
+}
 
-        function onDown(e) {
-            const x = e.touches ? e.touches[0].clientX : e.clientX;
-            const y = e.touches ? e.touches[0].clientY : e.clientY;
-            mouse.x = (x / window.innerWidth) * 2 - 1;
-            mouse.y = -(y / window.innerHeight) * 2 + 1;
-            
-            raycaster.setFromCamera(mouse, camera);
-            const hits = raycaster.intersectObjects(rings);
-            if (hits.length > 0) { 
-                selectedRing = hits[0].object; 
-                isDragging = true; 
-                lastX = x; 
-                TWEEN.removeAll(); 
-            }
-        }
+function onUp() {
+    if (selectedRing) snapRing(selectedRing);
+    isDragging = false; 
+    selectedRing = null;
+}
 
-        function onMove(e) {
-            if (!isDragging || !selectedRing) return;
-            const x = e.touches ? e.touches[0].clientX : e.clientX;
-            const deltaX = x - lastX;
-            // Sensitivity adjustment
-            selectedRing.rotation.y += deltaX * 0.008;
-            lastX = x;
-        }
+window.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
+window.addEventListener('touchstart', onDown, {passive: false}); window.addEventListener('touchmove', onMove, {passive: false}); window.addEventListener('touchend', onUp);
 
-        function onUp() {
-            if (selectedRing) snapRing(selectedRing);
-            isDragging = false; 
-            selectedRing = null;
-        }
-
-        window.addEventListener('mousedown', onDown); window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-        window.addEventListener('touchstart', onDown, {passive: false}); window.addEventListener('touchmove', onMove, {passive: false}); window.addEventListener('touchend', onUp);
-
-        // --- 4. SUCCESS / FAIL ---
-        function checkCode() {
-            const win = currentStatus.every((v, i) => v === PIN[i]);
-            if (win) {
-                rings.forEach((r, i) => {
-                    new TWEEN.Tween(r.position).to({ x: (i%2==0 ? 8 : -8) }, 1000).delay(i*100).easing(TWEEN.Easing.Quadratic.In).start();
-                });
-                setTimeout(() => {
-                    document.getElementById('ui').style.display = 'none';
-                    document.getElementById('reward-container').style.display = 'block';
-                }, 1000);
-            } else {
-                // Shaking effect for wrong code
-                new TWEEN.Tween(cryptexGroup.position).to({ x: 0.2 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
-            }
-        }
-
-        function animate(time) {
-            requestAnimationFrame(animate);
-            TWEEN.update(time);
-            // Gentle idle sway
-            if (!isDragging) {
-                cryptexGroup.rotation.y = Math.sin(time / 1500) * 0.03;
-                cryptexGroup.rotation.x = Math.cos(time / 2000) * 0.02;
-            }
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+// --- 4. SUCCESS / FAIL ---
+function checkCode() {
+    const win = currentStatus.every((v, i) => v === PIN[i]);
+    if (win) {
+        rings.forEach((r, i) => {
+            new TWEEN.Tween(r.position).to({ x: (i%2==0 ? 10 : -10) }, 1500).start();
         });
+        setTimeout(() => {
+            document.getElementById('ui').style.display = 'none';
+            document.getElementById('reward-container').style.display = 'block';
+        }, 1000);
+    } else {
+        new TWEEN.Tween(cryptexGroup.position).to({ x: 0.3 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
+    }
+}
+
+function animate(time) {
+    requestAnimationFrame(animate);
+    TWEEN.update(time);
+    if (!isDragging) {
+        cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.05;
+    }
+    renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
     </script>
 </body>
 </html>
