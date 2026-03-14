@@ -704,9 +704,9 @@
     if (correctCount === WHEEL_COUNT) {
       unlock();
     } else if (correctCount === 0 && current.some(v => v !== 0)) {
-      showStatus('Wrong combination — try again', 'error');
+      showStatus('Rossz kombináció - Próbáld újra', 'error');
     } else {
-      showStatus('Align the symbols to reveal the secret', '');
+      showStatus('Forgasd el a gyűrűket a cryptex feltöréséhez.', '');
     }
   }
 
@@ -745,7 +745,7 @@
 
     document.getElementById('cryptexBody').classList.remove('unlocked');
     document.getElementById('resetBtn').style.display = 'none';
-    showStatus('Align the symbols to reveal the secret', '');
+    showStatus('Forgasd el a gyűrűket a cryptex feltöréséhez.', '');
 
     /* Reset wheels to 0 0 0 0 */
     for (let w = 0; w < WHEEL_COUNT; w++) {
@@ -768,7 +768,7 @@
     if (type === 'error') {
       clearTimeout(statusTimer);
       statusTimer = setTimeout(() => {
-        el.textContent = 'Align the symbols to reveal the secret';
+        el.textContent = 'Forgasd el a gyűrűket a cryptex feltöréséhez.';
         el.className   = 'status';
       }, 2000);
     }
