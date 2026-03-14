@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Cryptex</title>
 
 <style>
@@ -14,6 +12,7 @@ margin:0;
 background:#050505;
 font-family:Courier New, monospace;
 overflow:hidden;
+touch-action:none;
 }
 
 #ui{
@@ -34,6 +33,7 @@ box-sizing:border-box;
 h2{
 color:#d4af37;
 letter-spacing:5px;
+text-shadow:0 0 15px #000;
 }
 
 #submit-btn{
@@ -52,13 +52,8 @@ cursor:pointer;
 <body>
 
 <div id="ui">
-
 <h2>MECHANICAL UNIT</h2>
-
-<button id="submit-btn" onclick="checkCode()">
-ENGAGE LOCK
-</button>
-
+<button id="submit-btn" onclick="checkCode()">ENGAGE LOCK</button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -81,9 +76,7 @@ window.innerWidth/window.innerHeight,
 )
 
 const renderer=new THREE.WebGLRenderer({antialias:true})
-
 renderer.setSize(window.innerWidth,window.innerHeight)
-
 document.body.appendChild(renderer.domElement)
 
 scene.add(new THREE.AmbientLight(0xffffff,0.9))
@@ -97,7 +90,6 @@ const rings=[]
 function createTex(){
 
 const canvas=document.createElement("canvas")
-
 canvas.width=1024
 canvas.height=128
 
@@ -118,7 +110,6 @@ ctx.fillStyle="#ffcc00"
 ctx.fillText(i,x,64)
 
 ctx.strokeStyle="#333"
-
 ctx.beginPath()
 ctx.moveTo(i*(1024/10),0)
 ctx.lineTo(i*(1024/10),128)
@@ -128,14 +119,12 @@ ctx.stroke()
 
 const tex=new THREE.CanvasTexture(canvas)
 tex.wrapS=THREE.RepeatWrapping
-
 return tex
 
 }
 
 const cryptex=new THREE.Group()
 
-/* fontos: 10 segment */
 const geo=new THREE.CylinderGeometry(
 1.2,
 1.2,
@@ -162,14 +151,7 @@ ring.userData={index:i}
 rings.push(ring)
 cryptex.add(ring)
 
-/* frame */
-
-const frameGeo=new THREE.BoxGeometry(
-0.75,
-0.85,
-0.1
-)
-
+const frameGeo=new THREE.BoxGeometry(0.75,0.85,0.1)
 const edges=new THREE.EdgesGeometry(frameGeo)
 
 const frame=new THREE.LineSegments(
@@ -178,23 +160,39 @@ new THREE.LineBasicMaterial({color:0xd4af37})
 )
 
 frame.position.set(0,y,1.205)
-
 scene.add(frame)
 
 }
 
 scene.add(cryptex)
-
 camera.position.set(0,0,7)
 
 const raycaster=new THREE.Raycaster()
 const mouse=new THREE.Vector2()
 
-let selected=null
-let dragging=false
+let selectedRing=null
+let isDragging=false
 let lastX=0
 
-function down(e){
+
+function snapRing(ring){
+
+const target=Math.round(ring.rotation.y/STEP)*STEP
+
+new TWEEN.Tween(ring.rotation)
+.to({y:target},400)
+.easing(TWEEN.Easing.Back.Out)
+.start()
+
+let digit=(-Math.round(target/STEP))%10
+digit=(digit+10)%10
+
+currentStatus[ring.userData.index]=digit
+
+}
+
+
+function onDown(e){
 
 const x=e.touches?e.touches[0].clientX:e.clientX
 const y=e.touches?e.touches[0].clientY:e.clientY
@@ -208,8 +206,8 @@ const hits=raycaster.intersectObjects(rings)
 
 if(hits.length){
 
-selected=hits[0].object
-dragging=true
+selectedRing=hits[0].object
+isDragging=true
 lastX=x
 
 TWEEN.removeAll()
@@ -218,45 +216,41 @@ TWEEN.removeAll()
 
 }
 
-function move(e){
+function onMove(e){
 
-if(!dragging)return
+if(!isDragging||!selectedRing)return
 
 const x=e.touches?e.touches[0].clientX:e.clientX
 
-const dx=x-lastX
+const deltaX=x-lastX
 
-selected.rotation.y+=dx*0.008
+selectedRing.rotation.y+=deltaX*0.008
 
 lastX=x
 
 }
 
-function up(){
+function onUp(){
 
-if(selected){
+if(selectedRing)snapRing(selectedRing)
 
-const target=Math.round(selected.rotation.y/STEP)*STEP
-
-new TWEEN.Tween(selected.rotation)
-.to({y:target},500)
-.easing(TWEEN.Easing.Back.Out)
-.start()
-
-/* digit számítás stabil módon */
-
-let digit = (-Math.round(target/STEP)) % 10
-digit = (digit + 10) % 10
-
-currentStatus[selected.userData.index] = digit
+isDragging=false
+selectedRing=null
 
 }
 
-dragging=false
-selected=null
+window.addEventListener("mousedown",onDown)
+window.addEventListener("mousemove",onMove)
+window.addEventListener("mouseup",onUp)
 
-}
+window.addEventListener("touchstart",onDown)
+window.addEventListener("touchmove",onMove)
+window.addEventListener("touchend",onUp)
+
+
 function checkCode(){
+
+console.log(currentStatus)
 
 const ok=currentStatus.every((v,i)=>v===PIN[i])
 
@@ -283,6 +277,7 @@ new TWEEN.Tween(cryptex.position)
 }
 
 }
+
 
 function animate(t){
 
