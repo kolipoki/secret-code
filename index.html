@@ -1,189 +1,785 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Pro Cryptex</title>
-<style>
-body{margin:0;overflow:hidden;background:#000;font-family:Arial;}
-#ui{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:40px;pointer-events:none;}
-button{pointer-events:auto;padding:14px 40px;font-size:18px;background:#d4af37;border:none;cursor:pointer;}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Cryptex Lock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold-light:  #f5d97e;
+      --gold-mid:    #c8922a;
+      --gold-dark:   #7a5010;
+      --brass:       #b8820a;
+      --copper:      #9c6020;
+      --bg-deep:     #0a0806;
+      --bg-mid:      #110e08;
+      --shadow-dark: rgba(0,0,0,0.9);
+      --shadow-gold: rgba(200,146,42,0.35);
+      --ring-h:      64px;  /* visible height of one digit on wheel */
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-deep);
+      color: var(--gold-light);
+      font-family: 'Orbitron', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    /* ─── Starfield / Ambient Background ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%,   rgba(200,146,42,0.08) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(122,80,16,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Scene Wrapper ─── */
+    .scene {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* ─── Title ─── */
+    .title {
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      font-size: clamp(1.1rem, 4vw, 1.6rem);
+      letter-spacing: 0.3em;
+      color: var(--gold-mid);
+      text-shadow: 0 0 24px rgba(200,146,42,0.5), 0 2px 4px #000;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+
+    /* ─── Cryptex Outer Shell ─── */
+    /*
+      The cryptex is made of three parts:
+        .cryptex-left  – left end cap (slides left on unlock)
+        .cryptex-right – right end cap (slides right on unlock)
+        .wheels-zone   – the four rotating digit rings in the center
+      All sit inside .cryptex-body which uses perspective for 3-D feel.
+    */
+    .cryptex-body {
+      display: flex;
+      align-items: stretch;
+      perspective: 800px;
+    }
+
+    /* ─── End Caps ─── */
+    .cap {
+      width: clamp(44px, 10vw, 64px);
+      height: clamp(120px, 26vw, 180px);
+      background: linear-gradient(
+        to right,
+        #2a1a06 0%, #8a5c12 20%, #c8922a 45%,
+        #f5d97e 55%, #c8922a 70%, #6a4008 90%, #1a0e04 100%
+      );
+      border-radius: 50% / 50%;
+      position: relative;
+      box-shadow:
+        inset 0 4px 10px rgba(255,220,100,0.15),
+        inset 0 -4px 10px rgba(0,0,0,0.6),
+        4px 0 18px rgba(0,0,0,0.8);
+      transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .cap::after {
+      content: '';
+      position: absolute; inset: 6px;
+      border-radius: 50% / 50%;
+      background: linear-gradient(
+        160deg,
+        rgba(255,220,120,0.25) 0%,
+        transparent 50%,
+        rgba(0,0,0,0.3) 100%
+      );
+      pointer-events: none;
+    }
+    .cap-left  { border-radius: 50% 10% 10% 50% / 50% 8% 8% 50%; }
+    .cap-right { border-radius: 10% 50% 50% 10% / 8% 50% 50% 8%; }
+
+    /* ─── Wheels Zone ─── */
+    .wheels-zone {
+      display: flex;
+      align-items: stretch;
+      height: clamp(120px, 26vw, 180px);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Top & bottom ridge bands that run across all wheels */
+    .wheels-zone::before,
+    .wheels-zone::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 14px;
+      background: linear-gradient(to bottom, #8a5c12, #c8922a, #8a5c12);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      z-index: 10;
+      pointer-events: none;
+    }
+    .wheels-zone::before { top: 0; }
+    .wheels-zone::after  { bottom: 0; }
+
+    /* ─── Individual Wheel ─── */
+    /*
+      Each .wheel is a clip container. Inside is .wheel-strip:
+      a tall column of digits (0–9 repeated 3× for infinite-feel scroll)
+      that translates vertically as the user drags.
+    */
+    .wheel {
+      width: clamp(58px, 14vw, 82px);
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      cursor: grab;
+      background: linear-gradient(
+        to right,
+        #1a0e04 0%, #5a3808 8%, #9a6818 15%,
+        #d4a030 25%, #f0c850 35%,
+        #e8b838 50%,
+        #c88c20 65%, #9a6010 75%,
+        #6a4008 85%, #3a2004 92%, #160a02 100%
+      );
+      box-shadow:
+        inset 2px 0 8px rgba(0,0,0,0.5),
+        inset -2px 0 8px rgba(0,0,0,0.5),
+        inset 0 0 30px rgba(0,0,0,0.3);
+      border-left: 1px solid rgba(200,150,40,0.3);
+      border-right: 1px solid rgba(200,150,40,0.3);
+    }
+    .wheel:active { cursor: grabbing; }
+
+    /* Gradient overlays top/bottom to create "depth" inside the cylinder */
+    .wheel::before,
+    .wheel::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 42%;
+      z-index: 5;
+      pointer-events: none;
+    }
+    .wheel::before {
+      top: 0;
+      background: linear-gradient(to bottom,
+        rgba(10,5,2,0.92) 0%,
+        rgba(10,5,2,0.4)  60%,
+        transparent       100%
+      );
+    }
+    .wheel::after {
+      bottom: 0;
+      background: linear-gradient(to top,
+        rgba(10,5,2,0.92) 0%,
+        rgba(10,5,2,0.4)  60%,
+        transparent       100%
+      );
+    }
+
+    /* Center selection window – gold highlight bar */
+    .wheel-window {
+      position: absolute;
+      top: 50%;
+      left: 0; right: 0;
+      height: var(--ring-h);
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 6;
+      border-top: 2px solid rgba(245,217,126,0.8);
+      border-bottom: 2px solid rgba(245,217,126,0.8);
+      background: rgba(245,200,80,0.06);
+      box-shadow:
+        inset 0 1px 6px rgba(245,217,126,0.2),
+        inset 0 -1px 6px rgba(245,217,126,0.2);
+    }
+
+    /* ─── Digit Strip ─── */
+    .wheel-strip {
+      position: absolute;
+      left: 0; right: 0;
+      top: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* transition is added/removed by JS for snap animation */
+      will-change: transform;
+    }
+
+    .digit {
+      height: var(--ring-h);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      color: var(--gold-light);
+      text-shadow:
+        0 0 12px rgba(245,217,126,0.6),
+        0 2px 4px rgba(0,0,0,0.8);
+      flex-shrink: 0;
+      letter-spacing: -0.02em;
+    }
+
+    /* ─── Engraved knurling lines on the wheel surface ─── */
+    .wheel-knurl {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 10px,
+        rgba(0,0,0,0.18) 10px,
+        rgba(0,0,0,0.18) 11px
+      );
+    }
+
+    /* ─── Separator rings between wheels ─── */
+    .wheel-sep {
+      width: 8px;
+      height: 100%;
+      background: linear-gradient(to right, #4a2e08, #c8922a, #f5d97e, #c8922a, #4a2e08);
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      flex-shrink: 0;
+    }
+
+    /* ─── Center shine overlay on the whole cryptex ─── */
+    .cryptex-shine {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 38%;
+      background: linear-gradient(to bottom,
+        rgba(255,240,180,0.08) 0%,
+        transparent 100%
+      );
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* ─── Status / Instruction text ─── */
+    .status {
+      margin-top: 28px;
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+      letter-spacing: 0.2em;
+      color: var(--gold-mid);
+      text-shadow: 0 0 10px rgba(200,146,42,0.4);
+      height: 1.4em;
+      text-align: center;
+      transition: color 0.3s;
+    }
+    .status.error {
+      color: #e05030;
+      text-shadow: 0 0 12px rgba(224,80,48,0.6);
+      animation: shake 0.4s ease;
+    }
+    .status.success {
+      color: #50e890;
+      text-shadow: 0 0 12px rgba(80,232,144,0.7);
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-6px); }
+      80%      { transform: translateX(6px); }
+    }
+
+    /* ─── Unlock Overlay ─── */
+    /*
+      On correct PIN:
+      .cap-left slides left, .cap-right slides right,
+      revealing .unlock-reveal in the center gap.
+    */
+    .cryptex-body.unlocked .cap-left  { transform: translateX(-90px); }
+    .cryptex-body.unlocked .cap-right { transform: translateX(90px);  }
+    .cryptex-body.unlocked .wheels-zone { opacity: 0; transition: opacity 0.4s 0.3s; }
+
+    /* ─── Hidden compartment ─── */
+    .unlock-reveal {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.7s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 30;
+      pointer-events: none;
+    }
+    .cryptex-body.unlocked .unlock-reveal {
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    .unlock-reveal img {
+      width: clamp(140px, 38vw, 200px);
+      height: auto;
+      border: 3px solid var(--gold-mid);
+      border-radius: 8px;
+      box-shadow: 0 0 30px rgba(200,146,42,0.5), 0 8px 32px rgba(0,0,0,0.9);
+      background: #fff;
+      padding: 6px;
+    }
+    .unlock-label {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(0.55rem, 2vw, 0.75rem);
+      letter-spacing: 0.25em;
+      color: #50e890;
+      text-shadow: 0 0 10px rgba(80,232,144,0.5);
+    }
+
+    /* ─── Reset Button (shown after unlock) ─── */
+    .reset-btn {
+      display: none;
+      margin-top: 20px;
+      padding: 10px 28px;
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      background: transparent;
+      border: 1px solid var(--gold-mid);
+      color: var(--gold-mid);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      text-transform: uppercase;
+    }
+    .reset-btn:hover { background: var(--gold-mid); color: #000; }
+
+    /* ─── Glow pulse on unlock ─── */
+    @keyframes glow-pulse {
+      0%,100% { box-shadow: 0 0 20px rgba(200,146,42,0.3); }
+      50%      { box-shadow: 0 0 60px rgba(200,146,42,0.8), 0 0 100px rgba(200,146,42,0.3); }
+    }
+    .cryptex-body.unlocked {
+      animation: glow-pulse 2s ease 0.6s infinite;
+    }
+
+    /* ─── Decorative Hint Dots ─── */
+    .hint-dots {
+      display: flex;
+      gap: 6px;
+      margin-top: 14px;
+    }
+    .hint-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(200,146,42,0.25);
+      border: 1px solid rgba(200,146,42,0.4);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .hint-dot.active {
+      background: var(--gold-mid);
+      box-shadow: 0 0 8px rgba(200,146,42,0.8);
+    }
+  </style>
 </head>
 <body>
-<div id="ui">
-<h2 style="color:#d4af37">CRYPtex</h2>
-<button onclick="checkCode()">ENGAGE LOCK</button>
+
+<div class="scene">
+  <div class="title">Titkos kód Cryptex</div>
+
+  <!-- Main cryptex body: end caps + wheels -->
+  <div class="cryptex-body" id="cryptexBody">
+    <!-- Left end cap (slides away on unlock) -->
+    <div class="cap cap-left"></div>
+
+    <!-- Rotating digit wheels zone -->
+    <div class="wheels-zone" id="wheelsZone">
+      <!-- 4 wheels generated by JS -->
+    </div>
+
+    <!-- Right end cap -->
+    <div class="cap cap-right"></div>
+
+    <!-- Overlay shine strip -->
+    <div class="cryptex-shine"></div>
+
+    <!-- Hidden compartment revealed on correct PIN -->
+    <div class="unlock-reveal" id="unlockReveal">
+      <img src="reward-qr.png" alt="Reward QR Code" />
+      <div class="unlock-label">— Nyitva —</div>
+    </div>
+  </div>
+
+  <!-- Feedback text -->
+  <div class="status" id="status">Forgasd el a gyűrűket a cryptex feltöréséhez.</div>
+
+  <!-- Progress dots showing how many digits are correct -->
+  <div class="hint-dots" id="hintDots">
+    <div class="hint-dot"></div>
+    <div class="hint-dot"></div>
+    <div class="hint-dot"></div>
+    <div class="hint-dot"></div>
+  </div>
+
+  <!-- Reset button (visible only after unlock) -->
+  <button class="reset-btn" id="resetBtn" onclick="resetCryptex()">Visszaállítás</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
-
 <script>
-// ---------- CONFIG ----------
-const PIN = [1,2,3,4]; // Könnyen változtatható
-const DIGITS = 4;
-const STEP = Math.PI*2/10;
+/* ══════════════════════════════════════════════════
+   CRYPTEX LOCK — Core Logic
+   ══════════════════════════════════════════════════
 
-// ---------- SCENE ----------
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
-camera.position.z = 8;
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-document.body.appendChild(renderer.domElement);
+   Architecture:
+   - WHEEL_COUNT = 4 digit wheels
+   - Each wheel has digits 0-9 repeated 3 times (30 items total)
+     so the user can always scroll smoothly in both directions.
+   - currentIndex[i] tracks the selected digit (0-9) for wheel i.
+   - The strip is kept in a "virtual center" of the 30-item list
+     and re-centred quietly when near the edges (infinite scroll trick).
+   ══════════════════════════════════════════════════ */
 
-// ---------- LIGHT ----------
-scene.add(new THREE.AmbientLight(0xffffff,1.4));
-const key = new THREE.DirectionalLight(0xffffff,1.5);
-key.position.set(4,6,6);
-scene.add(key);
+  const CORRECT_PIN   = [3, 9, 8, 5];   // ← change this to set the PIN
+  const WHEEL_COUNT   = 4;
+  const DIGITS        = [0,1,2,3,4,5,6,7,8,9];
+  const REPEATS       = 3;               // how many times digits are repeated
+  const TOTAL_ITEMS   = DIGITS.length * REPEATS;  // 30
+  const CENTER_OFFSET = DIGITS.length;   // start scrolled to the middle repeat
+  const RING_H        = 64;              // px — must match CSS --ring-h
 
-// ---------- TEXTURE ----------
-function createNumbersTexture(){
-  const canvas = document.createElement("canvas");
-  canvas.width=1024; canvas.height=128;
-  const ctx = canvas.getContext("2d");
+  /* State per wheel */
+  const state = Array.from({ length: WHEEL_COUNT }, () => ({
+    index:      CENTER_OFFSET,   // position in the 30-item list
+    offset:     0,               // pixel offset during drag
+    dragging:   false,
+    startY:     0,
+    startOffset:0,
+    strip:      null,            // DOM element
+    value:      0,               // current digit shown (0-9)
+    lastValue:  -1,              // for change detection (haptic)
+  }));
 
-  ctx.fillStyle="#111";
-  ctx.fillRect(0,0,1024,128);
+  let unlocked = false;
 
-  ctx.font="bold 90px Arial";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
+  /* ── Build DOM ── */
+  const zone = document.getElementById('wheelsZone');
 
-  for(let i=0;i<10;i++){
-    ctx.fillStyle="#ffd34d";
-    ctx.fillText(i,(i+0.5)*102.4,64);
+  function buildWheels() {
+    zone.innerHTML = '';
+    for (let w = 0; w < WHEEL_COUNT; w++) {
+      if (w > 0) {
+        const sep = document.createElement('div');
+        sep.className = 'wheel-sep';
+        zone.appendChild(sep);
+      }
+
+      const wheel = document.createElement('div');
+      wheel.className = 'wheel';
+      wheel.dataset.wheel = w;
+
+      /* Knurl texture */
+      const knurl = document.createElement('div');
+      knurl.className = 'wheel-knurl';
+      wheel.appendChild(knurl);
+
+      /* Center highlight window */
+      const win = document.createElement('div');
+      win.className = 'wheel-window';
+      wheel.appendChild(win);
+
+      /* Digit strip: digits repeated REPEATS times */
+      const strip = document.createElement('div');
+      strip.className = 'wheel-strip';
+
+      const allDigits = [];
+      for (let r = 0; r < REPEATS; r++) {
+        DIGITS.forEach(d => allDigits.push(d));
+      }
+      allDigits.forEach(d => {
+        const span = document.createElement('div');
+        span.className = 'digit';
+        span.textContent = d;
+        strip.appendChild(span);
+      });
+
+      wheel.appendChild(strip);
+      zone.appendChild(wheel);
+
+      state[w].strip = strip;
+      state[w].index = CENTER_OFFSET;   // start at digit 0 in middle repeat
+      applyTransform(w, false);
+
+      /* Attach pointer/touch events */
+      attachEvents(wheel, w);
+      /* Attach mouse-wheel scroll events */
+      wheel.addEventListener('wheel', onWheel.bind(null, w), { passive: false });
+    }
   }
-  return new THREE.CanvasTexture(canvas);
-}
-const tex = createNumbersTexture();
 
-// ---------- CRYPTEX ----------
-const cryptex = new THREE.Group();
-scene.add(cryptex);
+  /* ─────────────────────────────────────────────
+     TRANSFORM: move the strip so selected item
+     sits in the vertical center of the wheel.
+     offsetY = extra pixel offset during drag.
+  ───────────────────────────────────────────── */
+  function applyTransform(w, animate = true) {
+    const s = state[w];
+    const wheelEl = zone.querySelectorAll('.wheel')[w];
+    const wheelH  = wheelEl ? wheelEl.offsetHeight : 140;
+    const centerPx = wheelH / 2 - RING_H / 2;
 
-// Shaft
-const shaft = new THREE.Mesh(
-  new THREE.CylinderGeometry(.2,.2,6,32),
-  new THREE.MeshStandardMaterial({metalness:1,roughness:.3,color:0xaaaaaa})
-);
-cryptex.add(shaft);
+    /* Position so that s.index row is at center, plus drag offset */
+    const translateY = centerPx - s.index * RING_H + s.offset;
 
-// Rings & digits
-const rings = [];
-const digits = Array(DIGITS).fill(0);
-const geo = new THREE.CylinderGeometry(1.2,1.2,.8,40);
-for(let i=0;i<DIGITS;i++){
-  const ring = new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,metalness:.9,roughness:.35}));
-  ring.position.y = (1.5-i)*.95;
-  ring.userData.index = i;
+    if (animate) {
+      s.strip.style.transition = 'transform 0.25s cubic-bezier(0.22,1,0.36,1)';
+    } else {
+      s.strip.style.transition = 'none';
+    }
+    s.strip.style.transform = `translateY(${translateY}px)`;
 
-  // Snap guide 3D
-  const snap = new THREE.Mesh(
-    new THREE.BoxGeometry(0.05,0.9,0.05),
-    new THREE.MeshStandardMaterial({color:0xff0000})
-  );
-  snap.position.x = 1.2; snap.position.y = 0; snap.position.z = 0.41;
-  ring.add(snap);
+    /* Update current digit value */
+    s.value = DIGITS[s.index % DIGITS.length];
+  }
 
-  rings.push(ring);
-  cryptex.add(ring);
-}
+  /* ─────────────────────────────────────────────
+     HAPTIC FEEDBACK
+     Uses the Vibration API — a short 20ms buzz
+     each time the wheel clicks to a new digit.
+     Most Android browsers support this; iOS Safari
+     does not, so we guard with a feature check.
+  ───────────────────────────────────────────── */
+  function haptic() {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(18);   // 18ms — subtle click feel
+    }
+  }
 
-// Gears
-const gears = [];
-for(let i=0;i<DIGITS;i++){
-  const gear = new THREE.Mesh(
-    new THREE.TorusGeometry(1.35,.05,16,40),
-    new THREE.MeshStandardMaterial({color:0x888888})
-  );
-  gear.position.y = (1.5-i)*.95;
-  gears.push(gear);
-  cryptex.add(gear);
-}
+  /* ─────────────────────────────────────────────
+     SNAP: after drag ends, snap the strip so the
+     nearest digit is perfectly centred.
+     Clamps index to valid range; also re-centres
+     within the repeated list if we drift to the
+     edges, enabling pseudo-infinite scroll.
+  ───────────────────────────────────────────── */
+  function snapWheel(w) {
+    const s = state[w];
 
-// ---------- INTERACTION ----------
-let selected=null, drag=false, lastX=0;
+    /* Round index to nearest whole number based on pixel offset */
+    const moved = Math.round(-s.offset / RING_H);
+    s.index += moved;
+    s.offset = 0;
 
-function setDigit(ring,d){
-  digits[ring.userData.index]=d;
-  new TWEEN.Tween(ring.rotation)
-    .to({y:d*STEP},150)
-    .easing(TWEEN.Easing.Cubic.Out)
-    .start();
-}
+    /* Keep within the 30-item list */
+    if (s.index < 0)           s.index += DIGITS.length;
+    if (s.index >= TOTAL_ITEMS) s.index -= DIGITS.length;
 
-function rotateStep(ring,dir){
-  let d = digits[ring.userData.index];
-  d=(d+dir+10)%10;
-  setDigit(ring,d);
-  gears[ring.userData.index].rotation.y+=dir*STEP;
-}
+    /* Re-centre quietly: if near edges, jump to equivalent middle position */
+    if (s.index < 2) {
+      s.index += DIGITS.length;
+      applyTransform(w, false);   // instant jump (invisible)
+    } else if (s.index > TOTAL_ITEMS - 3) {
+      s.index -= DIGITS.length;
+      applyTransform(w, false);
+    }
 
-// Raycaster
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+    s.value = DIGITS[s.index % DIGITS.length];
 
-function down(e){
-  const x = e.touches? e.touches[0].clientX : e.clientX;
-  const y = e.touches? e.touches[0].clientY : e.clientY;
-  mouse.x = x/innerWidth*2-1;
-  mouse.y = -(y/innerHeight)*2+1;
-  raycaster.setFromCamera(mouse,camera);
-  const hits = raycaster.intersectObjects(rings);
-  if(hits.length){ selected=hits[0].object; drag=true; lastX=x; }
-}
-function move(e){
-  if(!drag) return;
-  const x = e.touches? e.touches[0].clientX : e.clientX;
-  const dx = x-lastX;
-  if(Math.abs(dx)>25){ rotateStep(selected,dx>0?1:-1); lastX=x; }
-}
-function up(){ drag=false; selected=null; }
+    /* Haptic if digit changed */
+    if (s.value !== s.lastValue) {
+      haptic();
+      s.lastValue = s.value;
+    }
 
-window.addEventListener("mousedown",down);
-window.addEventListener("mousemove",move);
-window.addEventListener("mouseup",up);
-window.addEventListener("touchstart",down,{passive:true});
-window.addEventListener("touchmove",move,{passive:true});
-window.addEventListener("touchend",up);
+    applyTransform(w, true);     // animate snap
 
-// ---------- CHECK ----------
-function checkCode(){
-  if(digits.every((v,i)=>v===PIN[i])) openCryptex();
-  else new TWEEN.Tween(cryptex.rotation).to({z:.08},60).repeat(6).yoyo(true).start();
-}
+    /* Check PIN after snap settles */
+    setTimeout(() => checkPin(), 280);
+  }
 
-// ---------- OPEN ----------
-function openCryptex(){
-  rings.forEach((r,i)=>{
-    new TWEEN.Tween(r.position).to({z:(i%2?3:-3)},1500).easing(TWEEN.Easing.Cubic.Out).start();
-  });
-  new TWEEN.Tween(camera.position).to({z:5},1800).start();
-  showReward();
-}
+  /* ─────────────────────────────────────────────
+     EVENT BINDING: unified pointer events work
+     for both mouse and touch on all platforms.
+  ───────────────────────────────────────────── */
+  function attachEvents(wheel, w) {
+    wheel.addEventListener('pointerdown', e => {
+      if (unlocked) return;
+      state[w].dragging    = true;
+      state[w].startY      = e.clientY;
+      state[w].startOffset = state[w].offset;
+      wheel.setPointerCapture(e.pointerId);
+      state[w].strip.style.transition = 'none';
+      e.preventDefault();
+    }, { passive: false });
 
-// ---------- REWARD ----------
-function showReward(){
-  const loader = new THREE.TextureLoader();
-  loader.load('reward-qr.png',tex=>{
-    const paper = new THREE.Mesh(
-      new THREE.PlaneGeometry(2,2),
-      new THREE.MeshBasicMaterial({map:tex,transparent:true})
-    );
-    paper.position.z = 0.2;
-    cryptex.add(paper);
-  });
-}
+    wheel.addEventListener('pointermove', e => {
+      if (!state[w].dragging) return;
+      const deltaY = e.clientY - state[w].startY;
+      state[w].offset = state[w].startOffset + deltaY;
 
-// ---------- ANIMATE ----------
-function animate(t){
-  requestAnimationFrame(animate);
-  TWEEN.update(t);
-  renderer.render(scene,camera);
-}
-animate();
+      /* Compute which digit we are hovering during drag for live haptic */
+      const rough = Math.round(-state[w].offset / RING_H);
+      const liveIdx = state[w].index + rough;
+      const liveVal = DIGITS[((liveIdx % DIGITS.length) + DIGITS.length) % DIGITS.length];
+      if (liveVal !== state[w].lastValue) {
+        haptic();
+        state[w].lastValue = liveVal;
+      }
+
+      applyTransform(w, false);
+      e.preventDefault();
+    }, { passive: false });
+
+    wheel.addEventListener('pointerup',   () => { if (state[w].dragging) { state[w].dragging = false; snapWheel(w); } });
+    wheel.addEventListener('pointercancel', () => { if (state[w].dragging) { state[w].dragging = false; snapWheel(w); } });
+  }
+
+  /* ─────────────────────────────────────────────
+     MOUSE WHEEL / TRACKPAD SCROLL
+     Each scroll step advances or retreats by one
+     digit, then snaps cleanly.
+  ───────────────────────────────────────────── */
+  function onWheel(w, e) {
+    if (unlocked) return;
+    e.preventDefault();
+    const s = state[w];
+    if (s.dragging) return;
+
+    const dir = e.deltaY > 0 ? 1 : -1;
+    s.index += dir;
+
+    /* Keep in bounds */
+    if (s.index < 0)            s.index += DIGITS.length;
+    if (s.index >= TOTAL_ITEMS) s.index -= DIGITS.length;
+
+    s.value = DIGITS[s.index % DIGITS.length];
+    if (s.value !== s.lastValue) { haptic(); s.lastValue = s.value; }
+
+    applyTransform(w, true);
+    clearTimeout(s._wheelTimer);
+    s._wheelTimer = setTimeout(() => checkPin(), 300);
+  }
+
+  /* ─────────────────────────────────────────────
+     PIN CHECK
+     Reads the current value from each wheel and
+     compares to CORRECT_PIN.
+
+     - All 4 correct → trigger unlock sequence.
+     - Partial match → update progress dots.
+     - No match      → subtle error feedback.
+  ───────────────────────────────────────────── */
+  function checkPin() {
+    if (unlocked) return;
+
+    const current = state.map(s => s.value);
+    const dots    = document.querySelectorAll('.hint-dot');
+
+    let correctCount = 0;
+    for (let i = 0; i < WHEEL_COUNT; i++) {
+      const ok = current[i] === CORRECT_PIN[i];
+      dots[i].classList.toggle('active', ok);
+      if (ok) correctCount++;
+    }
+
+    if (correctCount === WHEEL_COUNT) {
+      unlock();
+    } else if (correctCount === 0 && current.some(v => v !== 0)) {
+      showStatus('Wrong combination — try again', 'error');
+    } else {
+      showStatus('Align the symbols to reveal the secret', '');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     UNLOCK SEQUENCE
+     1. Play a strong haptic pattern.
+     2. Swap status text to success.
+     3. Add .unlocked class → CSS transitions
+        slide caps apart, fade wheels, then scale
+        in the QR compartment.
+  ───────────────────────────────────────────── */
+  function unlock() {
+    unlocked = true;
+
+    /* Unlock haptic: triple-buzz pattern */
+    if ('vibrate' in navigator) {
+      navigator.vibrate([60, 80, 60, 80, 120]);
+    }
+
+    showStatus('— Nyitva —', 'success');
+
+    const body = document.getElementById('cryptexBody');
+    body.classList.add('unlocked');
+
+    /* Show reset button after animation settles */
+    setTimeout(() => {
+      document.getElementById('resetBtn').style.display = 'inline-block';
+    }, 1400);
+  }
+
+  /* ─────────────────────────────────────────────
+     RESET: restore cryptex to locked state.
+  ───────────────────────────────────────────── */
+  function resetCryptex() {
+    unlocked = false;
+
+    document.getElementById('cryptexBody').classList.remove('unlocked');
+    document.getElementById('resetBtn').style.display = 'none';
+    showStatus('Align the symbols to reveal the secret', '');
+
+    /* Reset wheels to 0 0 0 0 */
+    for (let w = 0; w < WHEEL_COUNT; w++) {
+      state[w].index     = CENTER_OFFSET;
+      state[w].offset    = 0;
+      state[w].lastValue = -1;
+      applyTransform(w, true);
+    }
+    document.querySelectorAll('.hint-dot').forEach(d => d.classList.remove('active'));
+  }
+
+  /* ─────────────────────────────────────────────
+     STATUS MESSAGE
+  ───────────────────────────────────────────── */
+  let statusTimer;
+  function showStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className   = 'status ' + type;
+    if (type === 'error') {
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => {
+        el.textContent = 'Align the symbols to reveal the secret';
+        el.className   = 'status';
+      }, 2000);
+    }
+  }
+
+  /* ── Init ── */
+  buildWheels();
+  checkPin();   // initialize dots
+
+  /* Prevent default scroll on the body to avoid page scrolling during wheel drag */
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 </script>
 </body>
 </html>
