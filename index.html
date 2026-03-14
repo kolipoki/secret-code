@@ -20,7 +20,7 @@ button{pointer-events:auto;padding:14px 40px;font-size:18px;background:#d4af37;b
 
 <script>
 // ---------- CONFIG ----------
-const PIN = [1,2,3,4]; // könnyen változtatható
+const PIN = [1,2,3,4]; // Könnyen változtatható PIN
 const DIGITS = 4;
 const STEP = Math.PI*2/10;
 
@@ -39,28 +39,35 @@ key.position.set(4,6,6);
 scene.add(key);
 
 // ---------- TEXTURE ----------
-function numbersTexture(){
-  const c=document.createElement("canvas");
-  c.width=1024; c.height=128;
-  const g=c.getContext("2d");
-  g.fillStyle="#000"; g.fillRect(0,0,1024,128); // sötét háttér
-  g.font="bold 90px Arial"; g.textAlign="center"; g.textBaseline="middle";
+function createNumbersTexture(){
+  const canvas = document.createElement("canvas");
+  canvas.width=1024; canvas.height=128;
+  const ctx = canvas.getContext("2d");
+
+  // Sötét háttér
+  ctx.fillStyle="#111";
+  ctx.fillRect(0,0,1024,128);
+
+  ctx.font="bold 90px Arial";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
 
   for(let i=0;i<10;i++){
-    g.fillStyle="#ffd34d";
-    g.fillText(i,(i+0.5)*102.4,64); // számok középre
-    // középre snap guide csík
-    g.strokeStyle="#ff0000";
-    g.lineWidth=3;
-    g.beginPath();
-    g.moveTo(i*102.4 + 51.2,0);
-    g.lineTo(i*102.4 + 51.2,128);
-    g.stroke();
-  }
+    // Számok világos színnel
+    ctx.fillStyle="#ffd34d";
+    ctx.fillText(i,(i+0.5)*102.4,64);
 
-  return new THREE.CanvasTexture(c);
+    // Közép snap jel
+    ctx.strokeStyle="#ff0000";
+    ctx.lineWidth=3;
+    ctx.beginPath();
+    ctx.moveTo(i*102.4 + 51.2,0);
+    ctx.lineTo(i*102.4 + 51.2,128);
+    ctx.stroke();
+  }
+  return new THREE.CanvasTexture(canvas);
 }
-const tex = numbersTexture();
+const tex = createNumbersTexture();
 
 // ---------- CRYPTEX ----------
 const cryptex = new THREE.Group();
@@ -78,7 +85,7 @@ const rings = [];
 const digits = Array(DIGITS).fill(0);
 const geo = new THREE.CylinderGeometry(1.2,1.2,.8,40);
 for(let i=0;i<DIGITS;i++){
-  const ring = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({map:tex,metalness:.9,roughness:.35}));
+  const ring = new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,metalness:.9,roughness:.35}));
   ring.position.y = (1.5-i)*.95;
   ring.userData.index = i;
   rings.push(ring);
@@ -98,23 +105,21 @@ for(let i=0;i<DIGITS;i++){
 }
 
 // ---------- INTERACTION ----------
-let selected = null;
-let drag = false;
-let lastX = 0;
+let selected=null, drag=false, lastX=0;
 
 function setDigit(ring,d){
-  digits[ring.userData.index] = d;
+  digits[ring.userData.index]=d;
   new TWEEN.Tween(ring.rotation)
-    .to({y: d*STEP}, 150)
+    .to({y:d*STEP},150)
     .easing(TWEEN.Easing.Cubic.Out)
     .start();
 }
 
 function rotateStep(ring,dir){
   let d = digits[ring.userData.index];
-  d = (d + dir + 10)%10;
+  d=(d+dir+10)%10;
   setDigit(ring,d);
-  gears[ring.userData.index].rotation.y += dir*STEP;
+  gears[ring.userData.index].rotation.y+=dir*STEP;
 }
 
 // Raycaster
@@ -124,7 +129,8 @@ const mouse = new THREE.Vector2();
 function down(e){
   const x = e.touches? e.touches[0].clientX : e.clientX;
   const y = e.touches? e.touches[0].clientY : e.clientY;
-  mouse.x = x/innerWidth*2-1; mouse.y = -(y/innerHeight)*2+1;
+  mouse.x = x/innerWidth*2-1;
+  mouse.y = -(y/innerHeight)*2+1;
   raycaster.setFromCamera(mouse,camera);
   const hits = raycaster.intersectObjects(rings);
   if(hits.length){ selected=hits[0].object; drag=true; lastX=x; }
@@ -132,8 +138,8 @@ function down(e){
 function move(e){
   if(!drag) return;
   const x = e.touches? e.touches[0].clientX : e.clientX;
-  const dx = x - lastX;
-  if(Math.abs(dx)>25){ rotateStep(selected, dx>0?1:-1); lastX=x; }
+  const dx = x-lastX;
+  if(Math.abs(dx)>25){ rotateStep(selected,dx>0?1:-1); lastX=x; }
 }
 function up(){ drag=false; selected=null; }
 
@@ -146,34 +152,23 @@ window.addEventListener("touchend",up);
 
 // ---------- CHECK ----------
 function checkCode(){
-  if(digits.every((v,i)=>v===PIN[i])){ openCryptex(); }
-  else{
-    new TWEEN.Tween(cryptex.rotation)
-      .to({z:.08},60)
-      .repeat(6)
-      .yoyo(true)
-      .start();
-  }
+  if(digits.every((v,i)=>v===PIN[i])) openCryptex();
+  else new TWEEN.Tween(cryptex.rotation).to({z:.08},60).repeat(6).yoyo(true).start();
 }
 
 // ---------- OPEN ----------
 function openCryptex(){
   rings.forEach((r,i)=>{
-    new TWEEN.Tween(r.position)
-      .to({z:(i%2?3:-3)},1500)
-      .easing(TWEEN.Easing.Cubic.Out)
-      .start();
+    new TWEEN.Tween(r.position).to({z:(i%2?3:-3)},1500).easing(TWEEN.Easing.Cubic.Out).start();
   });
-  new TWEEN.Tween(camera.position)
-    .to({z:5},1800)
-    .start();
+  new TWEEN.Tween(camera.position).to({z:5},1800).start();
   showReward();
 }
 
 // ---------- REWARD ----------
 function showReward(){
   const loader = new THREE.TextureLoader();
-  loader.load('reward-qr.png', tex=>{
+  loader.load('reward-qr.png',tex=>{
     const paper = new THREE.Mesh(
       new THREE.PlaneGeometry(2,2),
       new THREE.MeshBasicMaterial({map:tex,transparent:true})
