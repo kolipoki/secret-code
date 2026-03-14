@@ -48,7 +48,7 @@
         const PIN = [1, 2, 3, 4]; 
 let currentStatus = [0, 0, 0, 0];
 const rings = [];
-const STEP = (Math.PI * 2) / 10; 
+const STEP = (Math.PI * 2) / 10; // 36 degrees
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -68,6 +68,7 @@ function createPrecisionTex() {
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
     
+    // Background
     ctx.fillStyle = '#111';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -76,12 +77,14 @@ function createPrecisionTex() {
     ctx.font = 'bold 85px Arial';
     
     for(let i = 0; i < 10; i++) {
+        // Each number is centered in its 102.4px wide slot
         const x = (i * 102.4) + 51.2; 
         ctx.fillStyle = '#ffcc00';
         ctx.fillText(i, x, 64);
         
-        // Vertical divider lines (helps verify alignment)
-        ctx.strokeStyle = '#222';
+        // Vertical divider lines (visible on the ring to show slots)
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(i * 102.4, 0);
         ctx.lineTo(i * 102.4, 128);
@@ -90,23 +93,23 @@ function createPrecisionTex() {
     
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
-    
-    // --- THE ALIGNMENT FIX ---
-    // In Three.js, UV 0.0 is on the side (+X). The camera is at +Z.
-    // By default, the camera sees UV 0.25. 
-    // To see Digit '0' (centered at UV 0.05), we shift the texture offset.
-    tex.offset.x = 0.20; 
     return tex;
 }
 
 const cryptexGroup = new THREE.Group();
-const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 80);
+// Use 60 segments (multiple of 10) for perfect geometry alignment
+const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 60);
+
+// --- THE GEOMETRY FIX ---
+// 1. Math.PI/2 moves the texture start (0) from the side to the front.
+// 2. -Math.PI/10 (18 degrees) shifts it so the CENTER of the number faces the camera.
+ringGeo.rotateY(Math.PI / 2 - Math.PI / 10);
 
 for(let i=0; i<4; i++) {
     const yPos = (1.5 - i) * 0.95;
     const ringMat = new THREE.MeshPhongMaterial({ 
         map: createPrecisionTex(), 
-        shininess: 50 
+        shininess: 80 
     });
 
     const ring = new THREE.Mesh(ringGeo, ringMat);
@@ -116,7 +119,7 @@ for(let i=0; i<4; i++) {
     cryptexGroup.add(ring);
 
     // Frame (Gold Rectangle)
-    const boxGeo = new THREE.BoxGeometry(0.76, 0.85, 0.1);
+    const boxGeo = new THREE.BoxGeometry(0.75, 0.85, 0.1);
     const edges = new THREE.EdgesGeometry(boxGeo);
     const frame = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xd4af37, linewidth: 2 }));
     frame.position.set(0, yPos, 1.21);
@@ -128,16 +131,15 @@ camera.position.set(0, 0, 7);
 
 // --- 2. THE SNAP LOGIC ---
 function snapRing(ring) {
-    // Snap to the nearest 36-degree interval
+    // Snap to the closest 36-degree interval
     const targetRotation = Math.round(ring.rotation.y / STEP) * STEP;
     
     new TWEEN.Tween(ring.rotation)
         .to({ y: targetRotation }, 500)
         .easing(TWEEN.Easing.Back.Out)
         .onUpdate(() => {
-            // digit 0 is at rotation 0.
-            // Dragging right increases rotation, which should cycle numbers backwards (0, 9, 8...)
-            // So we use negative rotation to get the correct digit index
+            // Logic to determine which digit is facing front
+            // Dragging right = positive rotation = numbers go 0, 9, 8...
             let digit = Math.round((-ring.rotation.y / STEP) % 10);
             if (digit < 0) digit += 10;
             currentStatus[ring.userData.index] = digit;
@@ -170,7 +172,8 @@ function onMove(e) {
     if (!isDragging || !selectedRing) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const deltaX = x - lastX;
-    selectedRing.rotation.y += deltaX * 0.01;
+    // Rotate ring based on horizontal drag
+    selectedRing.rotation.y += deltaX * 0.008;
     lastX = x;
 }
 
@@ -206,6 +209,7 @@ function animate(time) {
     requestAnimationFrame(animate);
     TWEEN.update(time);
     if (!isDragging) {
+        // Subtle tilt for 3D effect
         cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.05;
     }
     renderer.render(scene, camera);
