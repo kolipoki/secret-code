@@ -1,226 +1,428 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Precision Cryptex</title>
-    <style>
-        body { margin: 0; background: #050505; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
-        #ui { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; display: flex; flex-direction: column; 
-            align-items: center; justify-content: space-between; padding: 40px; box-sizing: border-box; 
-        }
-        h2 { color: #d4af37; letter-spacing: 5px; text-shadow: 0 0 15px #000; margin: 0; text-align: center; }
-        #submit-btn {
-            pointer-events: auto; background: #d4af37; border: 2px solid #000; 
-            padding: 16px 50px; font-size: 1.2rem; font-weight: bold; 
-            border-radius: 4px; cursor: pointer; color: #111;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.8); transition: 0.1s;
-        }
-        #submit-btn:active { transform: translateY(3px); box-shadow: none; }
-        #reward-container { 
-            display: none; position: absolute; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); text-align: center; 
-            background: #111; padding: 40px; border: 3px solid #d4af37; 
-            z-index: 1000; box-shadow: 0 0 50px #d4af37; color: white;
-        }
-        .qr-image { width: 220px; border: 6px solid #fff; margin-top: 20px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Precision Cryptex</title>
+
+<style>
+
+body{
+margin:0;
+background:#050505;
+font-family:'Courier New', monospace;
+overflow:hidden;
+touch-action:none;
+}
+
+#ui{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+pointer-events:none;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:space-between;
+padding:40px;
+box-sizing:border-box;
+}
+
+h2{
+color:#d4af37;
+letter-spacing:5px;
+text-shadow:0 0 15px #000;
+margin:0;
+text-align:center;
+}
+
+#submit-btn{
+pointer-events:auto;
+background:#d4af37;
+border:2px solid #000;
+padding:16px 50px;
+font-size:1.2rem;
+font-weight:bold;
+border-radius:4px;
+cursor:pointer;
+color:#111;
+box-shadow:0 6px 20px rgba(0,0,0,0.8);
+transition:0.1s;
+}
+
+#submit-btn:active{
+transform:translateY(3px);
+box-shadow:none;
+}
+
+#reward-container{
+display:none;
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+text-align:center;
+background:#111;
+padding:40px;
+border:3px solid #d4af37;
+z-index:1000;
+box-shadow:0 0 50px #d4af37;
+color:white;
+}
+
+.qr-image{
+width:220px;
+border:6px solid #fff;
+margin-top:20px;
+}
+
+</style>
 </head>
+
 <body>
 
-    <div id="ui">
-        <h2>MECHANICAL UNIT</h2>
-        <button id="submit-btn" onclick="checkCode()">ENGAGE LOCK</button>
-    </div>
+<div id="ui">
+<h2>MECHANICAL UNIT</h2>
+<button id="submit-btn" onclick="checkCode()">ENGAGE LOCK</button>
+</div>
 
-    <div id="reward-container">
-        <h1>UNLOCKED</h1>
-        <p>The code is revealed:</p>
-        <img src="reward-qr.png" class="qr-image">
-    </div>
+<div id="reward-container">
+<h1>UNLOCKED</h1>
+<p>The code is revealed:</p>
+<img src="reward-qr.png" class="qr-image">
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
-    <script>
-        const PIN = [1, 2, 3, 4]; 
-let currentStatus = [0, 0, 0, 0];
-const rings = [];
-const STEP = (Math.PI * 2) / 10; // 36 degrees
+<script>
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+const PIN=[1,2,3,4]
+let currentStatus=[0,0,0,0]
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-dirLight.position.set(5, 5, 10);
-scene.add(dirLight);
+const rings=[]
+const STEP=(Math.PI*2)/10
 
-// --- 1. THE PRECISION TEXTURE ---
-function createPrecisionTex() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024; 
-    canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    
-    // Background
-    ctx.fillStyle = '#111';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 85px Arial';
-    
-    for(let i = 0; i < 10; i++) {
-        // Each number is centered in its 102.4px wide slot
-        const x = (i * 102.4) + 51.2; 
-        ctx.fillStyle = '#ffcc00';
-        ctx.fillText(i, x, 64);
-        
-        // Vertical divider lines (visible on the ring to show slots)
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(i * 102.4, 0);
-        ctx.lineTo(i * 102.4, 128);
-        ctx.stroke();
-    }
-    
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.wrapS = THREE.RepeatWrapping;
-    return tex;
+const scene=new THREE.Scene()
+
+const camera=new THREE.PerspectiveCamera(
+45,
+window.innerWidth/window.innerHeight,
+0.1,
+1000
+)
+
+const renderer=new THREE.WebGLRenderer({antialias:true})
+
+renderer.setPixelRatio(window.devicePixelRatio)
+renderer.setSize(window.innerWidth,window.innerHeight)
+
+document.body.appendChild(renderer.domElement)
+
+scene.add(new THREE.AmbientLight(0xffffff,0.9))
+
+const dirLight=new THREE.DirectionalLight(0xffffff,0.6)
+dirLight.position.set(5,5,10)
+scene.add(dirLight)
+
+
+
+function createPrecisionTex(){
+
+const canvas=document.createElement("canvas")
+
+canvas.width=1024
+canvas.height=128
+
+const ctx=canvas.getContext("2d")
+
+ctx.fillStyle="#111"
+ctx.fillRect(0,0,canvas.width,canvas.height)
+
+ctx.textAlign="center"
+ctx.textBaseline="middle"
+ctx.font="bold 85px Arial"
+
+const slot=canvas.width/10
+
+for(let i=0;i<10;i++){
+
+const x=i*slot+slot/2
+
+ctx.fillStyle="#ffcc00"
+ctx.fillText(i,x,64)
+
+ctx.strokeStyle="#333"
+ctx.lineWidth=2
+
+ctx.beginPath()
+ctx.moveTo(i*slot,0)
+ctx.lineTo(i*slot,128)
+ctx.stroke()
+
 }
 
-const cryptexGroup = new THREE.Group();
-// Use 60 segments (multiple of 10) for perfect geometry alignment
-const ringGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.8, 60);
+const tex=new THREE.CanvasTexture(canvas)
 
-// --- THE GEOMETRY FIX ---
-// 1. Math.PI/2 moves the texture start (0) from the side to the front.
-// 2. -Math.PI/10 (18 degrees) shifts it so the CENTER of the number faces the camera.
-ringGeo.rotateY(Math.PI / 2 - Math.PI / 10);
+tex.wrapS=THREE.RepeatWrapping
 
-for(let i=0; i<4; i++) {
-    const yPos = (1.5 - i) * 0.95;
-    const ringMat = new THREE.MeshPhongMaterial({ 
-        map: createPrecisionTex(), 
-        shininess: 80 
-    });
+/* fél számnyi offset */
+tex.offset.x=0.05
 
-    const ring = new THREE.Mesh(ringGeo, ringMat);
-    ring.position.y = yPos;
-    ring.userData = { index: i };
-    rings.push(ring);
-    cryptexGroup.add(ring);
+return tex
 
-    // Frame (Gold Rectangle)
-    const boxGeo = new THREE.BoxGeometry(0.75, 0.85, 0.1);
-    const edges = new THREE.EdgesGeometry(boxGeo);
-    const frame = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xd4af37, linewidth: 2 }));
-    frame.position.set(0, yPos, 1.21);
-    scene.add(frame);
 }
 
-scene.add(cryptexGroup);
-camera.position.set(0, 0, 7);
 
-// --- 2. THE SNAP LOGIC ---
-function snapRing(ring) {
-    // Snap to the closest 36-degree interval
-    const targetRotation = Math.round(ring.rotation.y / STEP) * STEP;
-    
-    new TWEEN.Tween(ring.rotation)
-        .to({ y: targetRotation }, 500)
-        .easing(TWEEN.Easing.Back.Out)
-        .onUpdate(() => {
-            // Logic to determine which digit is facing front
-            // Dragging right = positive rotation = numbers go 0, 9, 8...
-            let digit = Math.round((-ring.rotation.y / STEP) % 10);
-            if (digit < 0) digit += 10;
-            currentStatus[ring.userData.index] = digit;
-        })
-        .start();
+
+const cryptexGroup=new THREE.Group()
+
+const ringGeo=new THREE.CylinderGeometry(
+1.2,
+1.2,
+0.8,
+60
+)
+
+/* texture start front */
+ringGeo.rotateY(Math.PI/2)
+
+
+
+for(let i=0;i<4;i++){
+
+const yPos=(1.5-i)*0.95
+
+const ringMat=new THREE.MeshPhongMaterial({
+map:createPrecisionTex(),
+shininess:80
+})
+
+const ring=new THREE.Mesh(ringGeo,ringMat)
+
+ring.position.y=yPos
+
+ring.userData={index:i}
+
+rings.push(ring)
+
+cryptexGroup.add(ring)
+
+
+
+const boxGeo=new THREE.BoxGeometry(
+0.75,
+0.85,
+0.1
+)
+
+const edges=new THREE.EdgesGeometry(boxGeo)
+
+const frame=new THREE.LineSegments(
+edges,
+new THREE.LineBasicMaterial({color:0xd4af37})
+)
+
+frame.position.set(0,yPos,1.205)
+
+scene.add(frame)
+
 }
 
-// --- 3. INTERACTION ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-let selectedRing = null, isDragging = false, lastX = 0;
+scene.add(cryptexGroup)
 
-function onDown(e) {
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const y = e.touches ? e.touches[0].clientY : e.clientY;
-    mouse.x = (x / window.innerWidth) * 2 - 1;
-    mouse.y = -(y / window.innerHeight) * 2 + 1;
-    
-    raycaster.setFromCamera(mouse, camera);
-    const hits = raycaster.intersectObjects(rings);
-    if (hits.length > 0) { 
-        selectedRing = hits[0].object; 
-        isDragging = true; 
-        lastX = x; 
-        TWEEN.removeAll(); 
-    }
+camera.position.set(0,0,7)
+
+
+
+function snapRing(ring){
+
+const targetRotation=Math.round(
+ring.rotation.y/STEP
+)*STEP
+
+new TWEEN.Tween(ring.rotation)
+
+.to({y:targetRotation},500)
+
+.easing(TWEEN.Easing.Back.Out)
+
+.onUpdate(()=>{
+
+let digit=Math.round(
+(-targetRotation/STEP)%10
+)
+
+if(digit<0)digit+=10
+
+currentStatus[
+ring.userData.index
+]=digit
+
+})
+
+.start()
+
 }
 
-function onMove(e) {
-    if (!isDragging || !selectedRing) return;
-    const x = e.touches ? e.touches[0].clientX : e.clientX;
-    const deltaX = x - lastX;
-    // Rotate ring based on horizontal drag
-    selectedRing.rotation.y += deltaX * 0.008;
-    lastX = x;
+
+
+const raycaster=new THREE.Raycaster()
+
+const mouse=new THREE.Vector2()
+
+let selectedRing=null
+let isDragging=false
+let lastX=0
+
+
+
+function onDown(e){
+
+const x=e.touches?e.touches[0].clientX:e.clientX
+const y=e.touches?e.touches[0].clientY:e.clientY
+
+mouse.x=(x/window.innerWidth)*2-1
+mouse.y=-(y/window.innerHeight)*2+1
+
+raycaster.setFromCamera(mouse,camera)
+
+const hits=raycaster.intersectObjects(rings)
+
+if(hits.length>0){
+
+selectedRing=hits[0].object
+isDragging=true
+lastX=x
+
+TWEEN.removeAll()
+
 }
 
-function onUp() {
-    if (selectedRing) snapRing(selectedRing);
-    isDragging = false; 
-    selectedRing = null;
 }
 
-window.addEventListener('mousedown', onDown); 
-window.addEventListener('mousemove', onMove); 
-window.addEventListener('mouseup', onUp);
-window.addEventListener('touchstart', onDown, {passive: false}); 
-window.addEventListener('touchmove', onMove, {passive: false}); 
-window.addEventListener('touchend', onUp);
 
-function checkCode() {
-    const win = currentStatus.every((v, i) => v === PIN[i]);
-    if (win) {
-        rings.forEach((r, i) => {
-            new TWEEN.Tween(r.position).to({ x: (i%2==0 ? 10 : -10) }, 1500).start();
-        });
-        setTimeout(() => {
-            document.getElementById('ui').style.display = 'none';
-            document.getElementById('reward-container').style.display = 'block';
-        }, 1000);
-    } else {
-        new TWEEN.Tween(cryptexGroup.position).to({ x: 0.3 }, 50).repeat(5).yoyo(true).to({x:0}, 50).start();
-    }
+
+function onMove(e){
+
+if(!isDragging||!selectedRing)return
+
+const x=e.touches?e.touches[0].clientX:e.clientX
+
+const deltaX=x-lastX
+
+selectedRing.rotation.y+=deltaX*0.008
+
+lastX=x
+
 }
 
-function animate(time) {
-    requestAnimationFrame(animate);
-    TWEEN.update(time);
-    if (!isDragging) {
-        // Subtle tilt for 3D effect
-        cryptexGroup.rotation.y = Math.sin(time / 2000) * 0.05;
-    }
-    renderer.render(scene, camera);
-}
-animate();
 
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-    </script>
+
+function onUp(){
+
+if(selectedRing)snapRing(selectedRing)
+
+isDragging=false
+selectedRing=null
+
+}
+
+
+
+window.addEventListener("mousedown",onDown)
+window.addEventListener("mousemove",onMove)
+window.addEventListener("mouseup",onUp)
+
+window.addEventListener("touchstart",onDown,{passive:false})
+window.addEventListener("touchmove",onMove,{passive:false})
+window.addEventListener("touchend",onUp)
+
+
+
+function checkCode(){
+
+const win=currentStatus.every(
+(v,i)=>v===PIN[i]
+)
+
+if(win){
+
+rings.forEach((r,i)=>{
+
+new TWEEN.Tween(r.position)
+
+.to({
+x:(i%2==0?10:-10)
+},1500)
+
+.start()
+
+})
+
+setTimeout(()=>{
+
+document.getElementById("ui").style.display="none"
+
+document.getElementById("reward-container").style.display="block"
+
+},1000)
+
+}
+
+else{
+
+new TWEEN.Tween(cryptexGroup.position)
+
+.to({x:0.3},50)
+
+.repeat(5)
+
+.yoyo(true)
+
+.to({x:0},50)
+
+.start()
+
+}
+
+}
+
+
+
+function animate(time){
+
+requestAnimationFrame(animate)
+
+TWEEN.update(time)
+
+if(!isDragging){
+
+cryptexGroup.rotation.y=Math.sin(time/2000)*0.05
+
+}
+
+renderer.render(scene,camera)
+
+}
+
+animate()
+
+
+
+window.addEventListener("resize",()=>{
+
+camera.aspect=window.innerWidth/window.innerHeight
+
+camera.updateProjectionMatrix()
+
+renderer.setSize(window.innerWidth,window.innerHeight)
+
+})
+
+</script>
+
 </body>
 </html>
