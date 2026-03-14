@@ -22,7 +22,7 @@ button{pointer-events:auto;padding:14px 40px;font-size:18px;background:#d4af37;b
 // ---------- CONFIG ----------
 const PIN = [1,2,3,4]; // könnyen változtatható PIN
 const DIGITS = 4;
-const STEP = Math.PI*2/10; // 10 szám
+const STEP = Math.PI*2/10;
 
 // ---------- SCENE ----------
 const scene = new THREE.Scene();
@@ -45,7 +45,17 @@ function numbersTexture(){
   const g=c.getContext("2d");
   g.fillStyle="#222"; g.fillRect(0,0,1024,128);
   g.font="bold 90px Arial"; g.textAlign="center"; g.textBaseline="middle";
-  for(let i=0;i<10;i++){ g.fillStyle="#ffd34d"; g.fillText(i,(i+.5)*102.4,64); }
+  for(let i=0;i<10;i++){
+    g.fillStyle="#ffd34d";
+    g.fillText(i,(i+0.5)*102.4,64);
+    // középen egy kis sáv snap jelzéshez
+    g.strokeStyle="#ff0000";
+    g.lineWidth=2;
+    g.beginPath();
+    g.moveTo(i*102.4 + 51.2,20);
+    g.lineTo(i*102.4 + 51.2,108);
+    g.stroke();
+  }
   return new THREE.CanvasTexture(c);
 }
 const tex = numbersTexture();
@@ -92,6 +102,7 @@ let lastX = 0;
 
 function setDigit(ring,d){
   digits[ring.userData.index] = d;
+  // snap a vizuális sávhoz
   new TWEEN.Tween(ring.rotation)
     .to({y: d*STEP}, 150)
     .easing(TWEEN.Easing.Cubic.Out)
@@ -178,7 +189,6 @@ function animate(t){
   renderer.render(scene,camera);
 }
 animate();
-
 </script>
 </body>
 </html>
