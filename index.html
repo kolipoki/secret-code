@@ -1,48 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="hu">
 <head>
-
 <meta charset="utf-8">
-
-<title>Cryptex</title>
-
+<title>Pro Cryptex</title>
 <style>
-
-body{
-margin:0;
-background:#000;
-overflow:hidden;
-font-family:Arial;
-}
-
-#ui{
-position:absolute;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:space-between;
-padding:40px;
-pointer-events:none;
-}
-
-button{
-pointer-events:auto;
-padding:14px 40px;
-font-size:18px;
-background:#d4af37;
-border:none;
-cursor:pointer;
-}
-
+body{margin:0;overflow:hidden;background:#000;font-family:Arial;}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:40px;pointer-events:none;}
+button{pointer-events:auto;padding:14px 40px;font-size:18px;background:#d4af37;border:none;cursor:pointer;}
 </style>
 </head>
-
 <body>
-
 <div id="ui">
 <h2 style="color:#d4af37">CRYPtex</h2>
 <button onclick="checkCode()">ENGAGE LOCK</button>
@@ -52,358 +19,165 @@ cursor:pointer;
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
 
 <script>
+// ---------- CONFIG ----------
+const PIN = [1,2,3,4]; // könnyen változtatható PIN
+const DIGITS = 4;
+const STEP = Math.PI*2/10; // 10 szám
 
-const PIN=[1,2,3,4]
+// ---------- SCENE ----------
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+camera.position.z = 8;
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
 
-const scene=new THREE.Scene()
+// ---------- LIGHT ----------
+scene.add(new THREE.AmbientLight(0xffffff,1.4));
+const key = new THREE.DirectionalLight(0xffffff,1.5);
+key.position.set(4,6,6);
+scene.add(key);
 
-const camera=new THREE.PerspectiveCamera(
-45,
-innerWidth/innerHeight,
-0.1,
-100
-)
+// ---------- TEXTURE ----------
+function numbersTexture(){
+  const c=document.createElement("canvas");
+  c.width=1024; c.height=128;
+  const g=c.getContext("2d");
+  g.fillStyle="#222"; g.fillRect(0,0,1024,128);
+  g.font="bold 90px Arial"; g.textAlign="center"; g.textBaseline="middle";
+  for(let i=0;i<10;i++){ g.fillStyle="#ffd34d"; g.fillText(i,(i+.5)*102.4,64); }
+  return new THREE.CanvasTexture(c);
+}
+const tex = numbersTexture();
 
-camera.position.z=8
+// ---------- CRYPTEX ----------
+const cryptex = new THREE.Group();
+scene.add(cryptex);
 
-const renderer=new THREE.WebGLRenderer({antialias:true})
+// Shaft
+const shaft = new THREE.Mesh(
+  new THREE.CylinderGeometry(.2,.2,6,32),
+  new THREE.MeshStandardMaterial({metalness:1,roughness:.3,color:0xaaaaaa})
+);
+cryptex.add(shaft);
 
-renderer.setSize(innerWidth,innerHeight)
-
-document.body.appendChild(renderer.domElement)
-
-
-
-/* LIGHT */
-
-scene.add(new THREE.AmbientLight(0xffffff,1.4))
-
-const key=new THREE.DirectionalLight(0xffffff,1.5)
-
-key.position.set(4,6,6)
-
-scene.add(key)
-
-
-
-/* TEXTURE */
-
-function numbers(){
-
-const c=document.createElement("canvas")
-
-c.width=1024
-c.height=128
-
-const g=c.getContext("2d")
-
-g.fillStyle="#222"
-
-g.fillRect(0,0,1024,128)
-
-g.font="bold 90px Arial"
-
-g.textAlign="center"
-
-g.textBaseline="middle"
-
-for(let i=0;i<10;i++){
-
-g.fillStyle="#ffd34d"
-
-g.fillText(i,(i+.5)*102.4,64)
-
+// Rings & digits
+const rings = [];
+const digits = Array(DIGITS).fill(0);
+const geo = new THREE.CylinderGeometry(1.2,1.2,.8,40);
+for(let i=0;i<DIGITS;i++){
+  const ring = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({map:tex,metalness:.9,roughness:.35}));
+  ring.position.y = (1.5-i)*.95;
+  ring.userData.index = i;
+  rings.push(ring);
+  cryptex.add(ring);
 }
 
-return new THREE.CanvasTexture(c)
-
+// Gears
+const gears = [];
+for(let i=0;i<DIGITS;i++){
+  const gear = new THREE.Mesh(
+    new THREE.TorusGeometry(1.35,.05,16,40),
+    new THREE.MeshStandardMaterial({color:0x888888})
+  );
+  gear.position.y = (1.5-i)*.95;
+  gears.push(gear);
+  cryptex.add(gear);
 }
 
-const tex=numbers()
-
-
-
-/* CRYPTEX */
-
-const cryptex=new THREE.Group()
-
-scene.add(cryptex)
-
-
-
-/* SHAFT */
-
-const shaft=new THREE.Mesh(
-
-new THREE.CylinderGeometry(.2,.2,6,32),
-
-new THREE.MeshStandardMaterial({
-metalness:1,
-roughness:.3,
-color:0xaaaaaa
-})
-
-)
-
-cryptex.add(shaft)
-
-
-
-/* RINGS */
-
-const rings=[]
-const digits=[0,0,0,0]
-
-const STEP=Math.PI*2/10
-
-const geo=new THREE.CylinderGeometry(1.2,1.2,.8,40)
-
-for(let i=0;i<4;i++){
-
-const ring=new THREE.Mesh(
-
-geo,
-
-new THREE.MeshStandardMaterial({
-
-map:tex,
-
-metalness:.9,
-roughness:.35
-
-})
-
-)
-
-ring.position.y=(1.5-i)*.95
-
-ring.userData.index=i
-
-rings.push(ring)
-
-cryptex.add(ring)
-
-}
-
-
-
-/* GEARS */
-
-const gears=[]
-
-for(let i=0;i<4;i++){
-
-const gear=new THREE.Mesh(
-
-new THREE.TorusGeometry(1.35,.05,16,40),
-
-new THREE.MeshStandardMaterial({color:0x888888})
-
-)
-
-gear.position.y=(1.5-i)*.95
-
-gears.push(gear)
-
-cryptex.add(gear)
-
-}
-
-
-
-/* INTERACTION */
-
-let selected=null
-
-let drag=false
-
-let lastX=0
-
-
+// ---------- INTERACTION ----------
+let selected = null;
+let drag = false;
+let lastX = 0;
 
 function setDigit(ring,d){
-
-digits[ring.userData.index]=d
-
-ring.rotation.y=d*STEP
-
+  digits[ring.userData.index] = d;
+  new TWEEN.Tween(ring.rotation)
+    .to({y: d*STEP}, 150)
+    .easing(TWEEN.Easing.Cubic.Out)
+    .start();
 }
-
-
 
 function rotateStep(ring,dir){
-
-let d=digits[ring.userData.index]
-
-d=(d+dir+10)%10
-
-setDigit(ring,d)
-
+  let d = digits[ring.userData.index];
+  d = (d + dir + 10)%10;
+  setDigit(ring,d);
+  gears[ring.userData.index].rotation.y += dir*STEP;
 }
 
-
-
-const raycaster=new THREE.Raycaster()
-
-const mouse=new THREE.Vector2()
-
-
+// Raycaster
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 function down(e){
-
-const x=e.clientX
-
-const y=e.clientY
-
-mouse.x=x/innerWidth*2-1
-
-mouse.y=-(y/innerHeight)*2+1
-
-raycaster.setFromCamera(mouse,camera)
-
-const hits=raycaster.intersectObjects(rings)
-
-if(hits.length){
-
-selected=hits[0].object
-
-drag=true
-
-lastX=x
-
+  const x = e.touches? e.touches[0].clientX : e.clientX;
+  const y = e.touches? e.touches[0].clientY : e.clientY;
+  mouse.x = x/innerWidth*2-1; mouse.y = -(y/innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits = raycaster.intersectObjects(rings);
+  if(hits.length){ selected=hits[0].object; drag=true; lastX=x; }
 }
-
-}
-
-
-
 function move(e){
-
-if(!drag)return
-
-const x=e.clientX
-
-const dx=x-lastX
-
-if(Math.abs(dx)>25){
-
-rotateStep(selected,dx>0?1:-1)
-
-gears[selected.userData.index].rotation.y+=dx*0.05
-
-lastX=x
-
+  if(!drag) return;
+  const x = e.touches? e.touches[0].clientX : e.clientX;
+  const dx = x - lastX;
+  if(Math.abs(dx)>25){ rotateStep(selected, dx>0?1:-1); lastX=x; }
 }
+function up(){ drag=false; selected=null; }
 
-}
+window.addEventListener("mousedown",down);
+window.addEventListener("mousemove",move);
+window.addEventListener("mouseup",up);
+window.addEventListener("touchstart",down,{passive:true});
+window.addEventListener("touchmove",move,{passive:true});
+window.addEventListener("touchend",up);
 
-
-
-function up(){
-
-drag=false
-
-selected=null
-
-}
-
-
-
-window.addEventListener("mousedown",down)
-
-window.addEventListener("mousemove",move)
-
-window.addEventListener("mouseup",up)
-
-
-
-/* CHECK */
-
+// ---------- CHECK ----------
 function checkCode(){
-
-if(digits.every((v,i)=>v===PIN[i])){
-
-openCryptex()
-
-}else{
-
-new TWEEN.Tween(cryptex.rotation)
-
-.to({z:.08},60)
-
-.repeat(6)
-
-.yoyo(true)
-
-.start()
-
+  if(digits.every((v,i)=>v===PIN[i])){ openCryptex(); }
+  else{
+    new TWEEN.Tween(cryptex.rotation)
+      .to({z:.08},60)
+      .repeat(6)
+      .yoyo(true)
+      .start();
+  }
 }
 
-}
-
-
-
+// ---------- OPEN ----------
 function openCryptex(){
-
-rings.forEach((r,i)=>{
-
-new TWEEN.Tween(r.position)
-
-.to({z:(i%2?3:-3)},1500)
-
-.easing(TWEEN.Easing.Cubic.Out)
-
-.start()
-
-})
-
-
-
-/* CAMERA MOVE */
-
-new TWEEN.Tween(camera.position)
-
-.to({z:5},1800)
-
-.start()
-
-
-
-createScroll()
-
+  rings.forEach((r,i)=>{
+    new TWEEN.Tween(r.position)
+      .to({z:(i%2?3:-3)},1500)
+      .easing(TWEEN.Easing.Cubic.Out)
+      .start();
+  });
+  new TWEEN.Tween(camera.position)
+    .to({z:5},1800)
+    .start();
+  showReward();
 }
 
-
-
-function createScroll(){
-
-const paper=new THREE.Mesh(
-
-new THREE.PlaneGeometry(2,1),
-
-new THREE.MeshBasicMaterial({color:0xffffdd})
-
-)
-
-paper.position.z=.2
-
-cryptex.add(paper)
-
+// ---------- REWARD ----------
+function showReward(){
+  const loader = new THREE.TextureLoader();
+  loader.load('reward-qr.png', tex=>{
+    const paper = new THREE.Mesh(
+      new THREE.PlaneGeometry(2,2),
+      new THREE.MeshBasicMaterial({map:tex,transparent:true})
+    );
+    paper.position.z = 0.2;
+    cryptex.add(paper);
+  });
 }
 
-
-
+// ---------- ANIMATE ----------
 function animate(t){
-
-requestAnimationFrame(animate)
-
-TWEEN.update(t)
-
-renderer.render(scene,camera)
-
+  requestAnimationFrame(animate);
+  TWEEN.update(t);
+  renderer.render(scene,camera);
 }
-
-animate()
+animate();
 
 </script>
 </body>
