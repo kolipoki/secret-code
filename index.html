@@ -3,6 +3,7 @@
 <head>
 
 <meta charset="utf-8">
+
 <title>Cryptex</title>
 
 <style>
@@ -11,7 +12,7 @@ body{
 margin:0;
 background:#000;
 overflow:hidden;
-font-family:Courier New;
+font-family:Arial;
 }
 
 #ui{
@@ -22,25 +23,18 @@ width:100%;
 height:100%;
 display:flex;
 flex-direction:column;
-justify-content:space-between;
 align-items:center;
+justify-content:space-between;
 padding:40px;
 pointer-events:none;
-box-sizing:border-box;
-}
-
-h2{
-color:#d4af37;
-letter-spacing:6px;
 }
 
 button{
 pointer-events:auto;
-padding:16px 50px;
+padding:14px 40px;
+font-size:18px;
 background:#d4af37;
 border:none;
-font-weight:bold;
-font-size:18px;
 cursor:pointer;
 }
 
@@ -50,7 +44,7 @@ cursor:pointer;
 <body>
 
 <div id="ui">
-<h2>CRYPtex LOCK</h2>
+<h2 style="color:#d4af37">CRYPtex</h2>
 <button onclick="checkCode()">ENGAGE LOCK</button>
 </div>
 
@@ -60,15 +54,12 @@ cursor:pointer;
 <script>
 
 const PIN=[1,2,3,4]
-let digits=[0,0,0,0]
-
-const STEP=Math.PI*2/10
 
 const scene=new THREE.Scene()
 
 const camera=new THREE.PerspectiveCamera(
 45,
-window.innerWidth/window.innerHeight,
+innerWidth/innerHeight,
 0.1,
 100
 )
@@ -77,70 +68,50 @@ camera.position.z=8
 
 const renderer=new THREE.WebGLRenderer({antialias:true})
 
-renderer.setSize(window.innerWidth,window.innerHeight)
-
-renderer.toneMapping=THREE.ACESFilmicToneMapping
+renderer.setSize(innerWidth,innerHeight)
 
 document.body.appendChild(renderer.domElement)
 
 
 
-/* LIGHTING */
+/* LIGHT */
 
-scene.add(new THREE.AmbientLight(0xffffff,1.2))
+scene.add(new THREE.AmbientLight(0xffffff,1.4))
 
-const key=new THREE.DirectionalLight(0xffffff,1.4)
-key.position.set(5,6,5)
+const key=new THREE.DirectionalLight(0xffffff,1.5)
+
+key.position.set(4,6,6)
+
 scene.add(key)
 
-const rim=new THREE.DirectionalLight(0xffffff,.6)
-rim.position.set(-6,3,-4)
-scene.add(rim)
 
 
+/* TEXTURE */
 
-/* FAKE HDR REFLECTION */
-
-const env=new THREE.TextureLoader().load(
-"https://threejs.org/examples/textures/2294472375_24a3b8ef46_o.jpg"
-)
-
-env.mapping=THREE.EquirectangularReflectionMapping
-
-scene.environment=env
-
-
-
-/* NUMBER TEXTURE */
-
-function numberTexture(){
+function numbers(){
 
 const c=document.createElement("canvas")
+
 c.width=1024
 c.height=128
 
 const g=c.getContext("2d")
 
 g.fillStyle="#222"
+
 g.fillRect(0,0,1024,128)
 
-g.textAlign="center"
-g.textBaseline="middle"
 g.font="bold 90px Arial"
+
+g.textAlign="center"
+
+g.textBaseline="middle"
 
 for(let i=0;i<10;i++){
 
-const x=(i+.5)*102.4
+g.fillStyle="#ffd34d"
 
-g.fillStyle="#ffcc33"
-
-g.shadowColor="#000"
-g.shadowBlur=20
-g.fillText(i,x,64)
-
-g.strokeStyle="#000"
-g.lineWidth=4
-g.strokeText(i,x,64)
+g.fillText(i,(i+.5)*102.4,64)
 
 }
 
@@ -148,26 +119,27 @@ return new THREE.CanvasTexture(c)
 
 }
 
-const tex=numberTexture()
+const tex=numbers()
 
 
 
-/* GROUP */
+/* CRYPTEX */
 
 const cryptex=new THREE.Group()
+
 scene.add(cryptex)
 
 
 
-/* CENTER SHAFT */
+/* SHAFT */
 
 const shaft=new THREE.Mesh(
 
-new THREE.CylinderGeometry(.25,.25,6,32),
+new THREE.CylinderGeometry(.2,.2,6,32),
 
 new THREE.MeshStandardMaterial({
 metalness:1,
-roughness:.2,
+roughness:.3,
 color:0xaaaaaa
 })
 
@@ -180,22 +152,28 @@ cryptex.add(shaft)
 /* RINGS */
 
 const rings=[]
+const digits=[0,0,0,0]
 
-const ringGeo=new THREE.CylinderGeometry(1.2,1.2,.8,60)
+const STEP=Math.PI*2/10
 
-ringGeo.rotateY(Math.PI/2)
+const geo=new THREE.CylinderGeometry(1.2,1.2,.8,40)
 
 for(let i=0;i<4;i++){
 
-const mat=new THREE.MeshStandardMaterial({
+const ring=new THREE.Mesh(
+
+geo,
+
+new THREE.MeshStandardMaterial({
 
 map:tex,
+
 metalness:.9,
-roughness:.3
+roughness:.35
 
 })
 
-const ring=new THREE.Mesh(ringGeo,mat)
+)
 
 ring.position.y=(1.5-i)*.95
 
@@ -205,92 +183,81 @@ rings.push(ring)
 
 cryptex.add(ring)
 
-
-
-/* GOLD FRAME */
-
-const frame=new THREE.LineSegments(
-
-new THREE.EdgesGeometry(new THREE.BoxGeometry(.9,.9,.1)),
-
-new THREE.LineBasicMaterial({color:0xd4af37})
-
-)
-
-frame.position.set(0,ring.position.y,1.25)
-
-scene.add(frame)
-
 }
 
 
 
-/* END CAPS */
+/* GEARS */
 
-function cap(y){
+const gears=[]
 
-const mesh=new THREE.Mesh(
+for(let i=0;i<4;i++){
 
-new THREE.CylinderGeometry(1.35,1.35,.5,32),
+const gear=new THREE.Mesh(
 
-new THREE.MeshStandardMaterial({
-metalness:1,
-roughness:.25,
-color:0xbbbbbb
-})
+new THREE.TorusGeometry(1.35,.05,16,40),
+
+new THREE.MeshStandardMaterial({color:0x888888})
 
 )
 
-mesh.position.y=y
+gear.position.y=(1.5-i)*.95
 
-cryptex.add(mesh)
+gears.push(gear)
+
+cryptex.add(gear)
 
 }
-
-cap(2.3)
-cap(-2.3)
 
 
 
 /* INTERACTION */
 
+let selected=null
+
+let drag=false
+
+let lastX=0
+
+
+
+function setDigit(ring,d){
+
+digits[ring.userData.index]=d
+
+ring.rotation.y=d*STEP
+
+}
+
+
+
+function rotateStep(ring,dir){
+
+let d=digits[ring.userData.index]
+
+d=(d+dir+10)%10
+
+setDigit(ring,d)
+
+}
+
+
+
 const raycaster=new THREE.Raycaster()
 
 const mouse=new THREE.Vector2()
-
-let selected=null
-let drag=false
-let lastX=0
-
-function digitFromRotation(rot){
-
-let d=(-Math.round(rot/STEP))%10
-return (d+10)%10
-
-}
-
-function snap(r){
-
-const target=Math.round(r.rotation.y/STEP)*STEP
-
-new TWEEN.Tween(r.rotation)
-.to({y:target},400)
-.easing(TWEEN.Easing.Back.Out)
-.start()
-
-digits[r.userData.index]=digitFromRotation(target)
-
-}
 
 
 
 function down(e){
 
-const x=e.clientX||e.touches[0].clientX
-const y=e.clientY||e.touches[0].clientY
+const x=e.clientX
 
-mouse.x=x/window.innerWidth*2-1
-mouse.y=-(y/window.innerHeight*2-1)
+const y=e.clientY
+
+mouse.x=x/innerWidth*2-1
+
+mouse.y=-(y/innerHeight)*2+1
 
 raycaster.setFromCamera(mouse,camera)
 
@@ -299,55 +266,84 @@ const hits=raycaster.intersectObjects(rings)
 if(hits.length){
 
 selected=hits[0].object
+
 drag=true
+
 lastX=x
 
-TWEEN.removeAll()
-
 }
 
 }
+
+
 
 function move(e){
 
 if(!drag)return
 
-const x=e.clientX||e.touches[0].clientX
+const x=e.clientX
 
 const dx=x-lastX
 
-selected.rotation.y+=dx*.008
+if(Math.abs(dx)>25){
+
+rotateStep(selected,dx>0?1:-1)
+
+gears[selected.userData.index].rotation.y+=dx*0.05
 
 lastX=x
 
 }
 
+}
+
+
+
 function up(){
 
-if(selected)snap(selected)
-
 drag=false
+
 selected=null
 
 }
 
+
+
 window.addEventListener("mousedown",down)
+
 window.addEventListener("mousemove",move)
+
 window.addEventListener("mouseup",up)
 
-window.addEventListener("touchstart",down)
-window.addEventListener("touchmove",move)
-window.addEventListener("touchend",up)
 
 
-
-/* CHECK PIN */
+/* CHECK */
 
 function checkCode(){
 
-console.log(digits)
-
 if(digits.every((v,i)=>v===PIN[i])){
+
+openCryptex()
+
+}else{
+
+new TWEEN.Tween(cryptex.rotation)
+
+.to({z:.08},60)
+
+.repeat(6)
+
+.yoyo(true)
+
+.start()
+
+}
+
+}
+
+
+
+function openCryptex(){
 
 rings.forEach((r,i)=>{
 
@@ -361,23 +357,41 @@ new TWEEN.Tween(r.position)
 
 })
 
-}
 
-else{
 
-new TWEEN.Tween(cryptex.rotation)
-.to({z:.1},80)
-.repeat(6)
-.yoyo(true)
+/* CAMERA MOVE */
+
+new TWEEN.Tween(camera.position)
+
+.to({z:5},1800)
+
 .start()
 
-}
+
+
+createScroll()
 
 }
 
 
 
-/* LOOP */
+function createScroll(){
+
+const paper=new THREE.Mesh(
+
+new THREE.PlaneGeometry(2,1),
+
+new THREE.MeshBasicMaterial({color:0xffffdd})
+
+)
+
+paper.position.z=.2
+
+cryptex.add(paper)
+
+}
+
+
 
 function animate(t){
 
@@ -390,8 +404,6 @@ renderer.render(scene,camera)
 }
 
 animate()
-
-
 
 </script>
 </body>
