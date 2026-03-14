@@ -243,11 +243,12 @@ new TWEEN.Tween(selected.rotation)
 .easing(TWEEN.Easing.Back.Out)
 .start()
 
-let digit=Math.round((-target/STEP)%10)
+/* digit számítás stabil módon */
 
-if(digit<0)digit+=10
+let digit = (-Math.round(target/STEP)) % 10
+digit = (digit + 10) % 10
 
-currentStatus[selected.userData.index]=digit
+currentStatus[selected.userData.index] = digit
 
 }
 
@@ -255,15 +256,6 @@ dragging=false
 selected=null
 
 }
-
-window.addEventListener("mousedown",down)
-window.addEventListener("mousemove",move)
-window.addEventListener("mouseup",up)
-
-window.addEventListener("touchstart",down)
-window.addEventListener("touchmove",move)
-window.addEventListener("touchend",up)
-
 function checkCode(){
 
 const ok=currentStatus.every((v,i)=>v===PIN[i])
