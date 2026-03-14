@@ -20,7 +20,7 @@ button{pointer-events:auto;padding:14px 40px;font-size:18px;background:#d4af37;b
 
 <script>
 // ---------- CONFIG ----------
-const PIN = [1,2,3,4]; // Könnyen változtatható PIN
+const PIN = [1,2,3,4]; // Könnyen változtatható
 const DIGITS = 4;
 const STEP = Math.PI*2/10;
 
@@ -44,7 +44,6 @@ function createNumbersTexture(){
   canvas.width=1024; canvas.height=128;
   const ctx = canvas.getContext("2d");
 
-  // Sötét háttér
   ctx.fillStyle="#111";
   ctx.fillRect(0,0,1024,128);
 
@@ -53,17 +52,8 @@ function createNumbersTexture(){
   ctx.textBaseline="middle";
 
   for(let i=0;i<10;i++){
-    // Számok világos színnel
     ctx.fillStyle="#ffd34d";
     ctx.fillText(i,(i+0.5)*102.4,64);
-
-    // Közép snap jel
-    ctx.strokeStyle="#ff0000";
-    ctx.lineWidth=3;
-    ctx.beginPath();
-    ctx.moveTo(i*102.4 + 51.2,0);
-    ctx.lineTo(i*102.4 + 51.2,128);
-    ctx.stroke();
   }
   return new THREE.CanvasTexture(canvas);
 }
@@ -88,6 +78,15 @@ for(let i=0;i<DIGITS;i++){
   const ring = new THREE.Mesh(geo,new THREE.MeshStandardMaterial({map:tex,metalness:.9,roughness:.35}));
   ring.position.y = (1.5-i)*.95;
   ring.userData.index = i;
+
+  // Snap guide 3D
+  const snap = new THREE.Mesh(
+    new THREE.BoxGeometry(0.05,0.9,0.05),
+    new THREE.MeshStandardMaterial({color:0xff0000})
+  );
+  snap.position.x = 1.2; snap.position.y = 0; snap.position.z = 0.41;
+  ring.add(snap);
+
   rings.push(ring);
   cryptex.add(ring);
 }
